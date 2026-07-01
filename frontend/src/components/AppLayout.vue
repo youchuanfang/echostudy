@@ -104,6 +104,7 @@ const studentMenus = [
 const adminMenus = [
   { path: '/admin', label: '后台首页', icon: DataAnalysis },
   { path: '/admin/users', label: '用户管理', icon: User },
+  { path: '/admin/register-admin', label: '注册新管理员', icon: User },
   { path: '/admin/rooms', label: '空间资源管理', icon: OfficeBuilding },
   { path: '/admin/seats', label: '座位/工位管理', icon: Grid },
   { path: '/admin/time-nodes', label: '时间节点管理', icon: Clock },

@@ -17,6 +17,7 @@ public class UserVO {
     private String status;
     private Integer violationCount;
     private LocalDateTime banEndTime;
+    private Boolean canRegisterAdmin;
 
     public static UserVO from(User user) {
         UserVO vo = new UserVO();
@@ -29,6 +30,7 @@ public class UserVO {
         vo.setStatus(user.getStatus());
         vo.setViolationCount(user.getViolationCount());
         vo.setBanEndTime(user.getBanEndTime());
+        vo.setCanRegisterAdmin(user.getCanRegisterAdmin());
         return vo;
     }
 }

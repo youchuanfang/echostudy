@@ -9,7 +9,7 @@ GO
 
 CREATE TABLE dbo.users (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-    username NVARCHAR(50) NOT NULL UNIQUE,
+    username NVARCHAR(50) NOT NULL,
     password NVARCHAR(255) NOT NULL,
     real_name NVARCHAR(50) NULL,
     student_no NVARCHAR(50) NULL,
@@ -18,9 +18,13 @@ CREATE TABLE dbo.users (
     status NVARCHAR(20) NOT NULL,
     violation_count INT NOT NULL DEFAULT 0,
     ban_end_time DATETIME2 NULL,
+    can_register_admin BIT NOT NULL DEFAULT 0,
     create_time DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     update_time DATETIME2 NULL
 );
+
+CREATE UNIQUE INDEX uk_users_role_username ON dbo.users(role, username);
+CREATE UNIQUE INDEX uk_users_student_no ON dbo.users(student_no) WHERE student_no IS NOT NULL;
 
 CREATE TABLE dbo.study_room (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
@@ -132,10 +136,10 @@ CREATE INDEX idx_reservation_seat_time ON dbo.reservation(seat_id, reserve_date,
 CREATE INDEX idx_reservation_user_time ON dbo.reservation(user_id, reserve_date, start_time, end_time, status);
 GO
 
-INSERT INTO dbo.users (username, password, real_name, student_no, phone, role, status)
+INSERT INTO dbo.users (username, password, real_name, student_no, phone, role, status, can_register_admin)
 VALUES
-('admin', '$2a$10$aZ8QQ3pA7sHTXnGaaGkfteLEfRE0kce0C7bQzWbs0YXKOK4YwCBPG', N'系统管理员', NULL, NULL, 'ADMIN', 'NORMAL'),
-('student', '$2a$10$aZ8QQ3pA7sHTXnGaaGkfteLEfRE0kce0C7bQzWbs0YXKOK4YwCBPG', N'演示学生', N'20260001', N'13800000000', 'STUDENT', 'NORMAL');
+('admin', '$2a$10$3IYgE2CZbF3gw1kGkkde7eTX434DJc59kAyqxM1uP4X0.V6sjRc0W', N'系统管理员', NULL, NULL, 'ADMIN', 'NORMAL', 1),
+('student', '$2a$10$3IYgE2CZbF3gw1kGkkde7eTX434DJc59kAyqxM1uP4X0.V6sjRc0W', N'演示学生', N'2026000001', N'13800000000', 'STUDENT', 'NORMAL', 0);
 
 INSERT INTO dbo.study_room (name, location_desc, capacity, open_time, close_time, latitude, longitude, allowed_radius_meter, description)
 VALUES

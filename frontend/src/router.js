@@ -11,6 +11,7 @@ import StudentNotifications from './views/StudentNotifications.vue'
 import StudentStatistics from './views/StudentStatistics.vue'
 import AdminDashboard from './views/AdminDashboard.vue'
 import AdminUsers from './views/AdminUsers.vue'
+import AdminRegister from './views/AdminRegister.vue'
 import AdminRooms from './views/AdminRooms.vue'
 import AdminSeats from './views/AdminSeats.vue'
 import AdminTimeNodes from './views/AdminTimeNodes.vue'
@@ -40,6 +41,7 @@ const routes = [
   { path: '/student/violations', component: StudentViolations, meta: { role: 'STUDENT', pageKey: 'violation' } },
   { path: '/admin', component: AdminDashboard, meta: { role: 'ADMIN', pageKey: 'adminDashboard' } },
   { path: '/admin/users', component: AdminUsers, meta: { role: 'ADMIN', pageKey: 'userManage' } },
+  { path: '/admin/register-admin', component: AdminRegister, meta: { role: 'ADMIN', pageKey: 'adminRegister' } },
   { path: '/admin/rooms', component: AdminRooms, meta: { role: 'ADMIN', pageKey: 'spaceManage' } },
   { path: '/admin/seats', component: AdminSeats, meta: { role: 'ADMIN', pageKey: 'seatManage' } },
   { path: '/admin/time-nodes', component: AdminTimeNodes, meta: { role: 'ADMIN', pageKey: 'timeNodeManage' } },

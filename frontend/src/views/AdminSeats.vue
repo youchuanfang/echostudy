@@ -15,7 +15,7 @@
     </AppCard>
     <AppCard v-if="roomId" title="座位/工位网格">
       <SeatLegend />
-      <div class="seat-grid" :style="{ gridTemplateColumns: `repeat(${maxCol}, minmax(64px, 1fr))` }">
+      <div class="seat-grid" :style="{ gridTemplateColumns: `repeat(${maxCol}, 88px)` }">
         <button v-for="seat in seats" :key="seat.id" class="seat" :class="seat.faulty ? 'FAULTY' : seat.enabled ? 'AVAILABLE' : 'DISABLED'" @click="toggle(seat)">
           <span class="seat-badges"><span v-if="seat.hasSocket">插</span><span v-if="seat.nearWindow">窗</span></span>
           <span class="seat-title">{{ seat.seatNo }}</span>

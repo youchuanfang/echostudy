@@ -1,6 +1,9 @@
 package com.echostudy.controller;
 
 import com.echostudy.common.Result;
+import com.echostudy.dto.AdminRegisterRequest;
+import com.echostudy.dto.ForgotPasswordCodeRequest;
+import com.echostudy.dto.ForgotPasswordResetRequest;
 import com.echostudy.dto.LoginRequest;
 import com.echostudy.dto.RegisterRequest;
 import com.echostudy.service.AuthService;
@@ -26,9 +29,25 @@ public class AuthController {
         return Result.ok(authService.register(request));
     }
 
+    @PostMapping("/admin/register")
+    public Result<UserVO> registerAdmin(@Valid @RequestBody AdminRegisterRequest request) {
+        return Result.ok(authService.registerAdmin(request));
+    }
+
     @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return Result.ok(authService.login(request));
+    }
+
+    @PostMapping("/forgot-password/code")
+    public Result<String> forgotPasswordCode(@Valid @RequestBody ForgotPasswordCodeRequest request) {
+        return Result.ok(authService.sendForgotPasswordCode(request));
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public Result<Void> resetPassword(@Valid @RequestBody ForgotPasswordResetRequest request) {
+        authService.resetPassword(request);
+        return Result.ok();
     }
 
     @GetMapping("/me")

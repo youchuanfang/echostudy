@@ -65,38 +65,41 @@
             </div>
             <p>{{ space.usageNotice || space.description || '暂无使用须知' }}</p>
           </div>
-          <el-button type="primary" plain @click="selectSpace(space)">
-            {{ isSeatBased(space) ? '选择座位/工位' : '预约该空间' }}
+          <el-button type="primary" plain @click="toggleSpace(space)">
+            {{ form.roomId === space.id ? '收起' : isSeatBased(space) ? '选择座位/工位' : '预约该空间' }}
           </el-button>
+          <div v-if="form.roomId === space.id && !isSeatBased(space)" class="space-item__detail">
+            <div class="room-reserve-panel">
+              <div>
+                <strong>{{ space.name }}</strong>
+                <p>{{ space.usageNotice || space.description || '该空间按整间预约，无需选择座位/工位。' }}</p>
+              </div>
+              <div class="panel-actions">
+                <el-button @click="collapseSpace">收起</el-button>
+                <el-button type="primary" @click="reserveRoom">提交预约</el-button>
+              </div>
+            </div>
+          </div>
+          <div v-if="form.roomId === space.id && isSeatBased(space) && layout.roomId" class="space-item__detail">
+            <div class="inline-seat-layout">
+              <SeatLegend />
+              <div class="seat-grid" :style="{ gridTemplateColumns: `repeat(${layout.maxCol}, 88px)` }">
+                <button
+                  v-for="seat in layout.seats"
+                  :key="seat.seatId"
+                  class="seat"
+                  :class="seat.displayStatus"
+                  :disabled="!seat.clickable"
+                  @click="reserve(seat)"
+                >
+                  <span class="seat-badges"><span v-if="seat.hasSocket">电</span><span v-if="seat.nearWindow">窗</span></span>
+                  <span class="seat-title">{{ seat.seatNo }}</span>
+                  <span class="seat-subtitle">{{ statusText(seat.displayStatus) }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </AppCard>
-
-    <AppCard v-if="selectedSpace && !isSeatBased(selectedSpace)" :title="`${selectedSpace.name} 整间预约`">
-      <div class="room-reserve-panel">
-        <div>
-          <strong>{{ selectedSpace.name }}</strong>
-          <p>{{ selectedSpace.usageNotice || selectedSpace.description || '该空间按整间预约，无需选择座位/工位。' }}</p>
-        </div>
-        <el-button type="primary" @click="reserveRoom">提交预约</el-button>
-      </div>
-    </AppCard>
-
-    <AppCard v-if="layout.roomId && selectedSpace && isSeatBased(selectedSpace)" :title="`${layout.roomName} 座位/工位`">
-      <SeatLegend />
-      <div class="seat-grid" :style="{ gridTemplateColumns: `repeat(${layout.maxCol}, minmax(64px, 1fr))` }">
-        <button
-          v-for="seat in layout.seats"
-          :key="seat.seatId"
-          class="seat"
-          :class="seat.displayStatus"
-          :disabled="!seat.clickable"
-          @click="reserve(seat)"
-        >
-          <span class="seat-badges"><span v-if="seat.hasSocket">电</span><span v-if="seat.nearWindow">窗</span></span>
-          <span class="seat-title">{{ seat.seatNo }}</span>
-          <span class="seat-subtitle">{{ statusText(seat.displayStatus) }}</span>
-        </button>
       </div>
     </AppCard>
 
@@ -128,6 +131,7 @@ import { spaceTypeMap, statusText } from '../config/statusMap'
 const router = useRouter()
 const spaceTypes = ['STUDY_ROOM', 'SEMINAR_ROOM', 'CLASSROOM', 'LAB_SEAT', 'PUBLIC_AREA']
 const seatBasedTypes = ['STUDY_ROOM', 'PUBLIC_AREA', 'LAB_SEAT']
+const expandedSpaceStorageKey = 'echostudy.student.reserve.expandedSpaceId'
 const spaces = ref([])
 const buildings = ref([])
 const nodes = ref([])
@@ -162,9 +166,10 @@ async function loadSpaces() {
   spaces.value = await api.get('/student/spaces', {
     params: filters.building && filters.building !== 'ALL' ? { building: filters.building } : {}
   })
-  if (!spaces.value.some((space) => space.id === form.roomId)) {
-    form.roomId = filteredSpaces.value[0]?.id || null
+  if (form.roomId && !spaces.value.some((space) => space.id === form.roomId)) {
+    form.roomId = null
     layout.value = {}
+    sessionStorage.removeItem(expandedSpaceStorageKey)
   }
 }
 
@@ -181,14 +186,30 @@ async function loadNodes() {
   nodes.value = await api.get('/student/time-nodes')
 }
 
+async function toggleSpace(space) {
+  if (form.roomId === space.id) {
+    collapseSpace()
+    return
+  }
+  await selectSpace(space)
+}
+
 async function selectSpace(space) {
   form.roomId = space.id
   selectedSeat.value = null
+  sessionStorage.setItem(expandedSpaceStorageKey, String(space.id))
   if (isSeatBased(space)) {
     await loadLayout()
   } else {
     layout.value = {}
   }
+}
+
+function collapseSpace() {
+  form.roomId = null
+  selectedSeat.value = null
+  layout.value = {}
+  sessionStorage.removeItem(expandedSpaceStorageKey)
 }
 
 async function loadLayout() {
@@ -261,8 +282,10 @@ async function submitReservation() {
 
 onMounted(async () => {
   await Promise.all([loadBuildings(), loadSpaces(), loadNodes()])
-  if (filteredSpaces.value[0]) {
-    form.roomId = filteredSpaces.value[0].id
+  const savedSpaceId = Number(sessionStorage.getItem(expandedSpaceStorageKey))
+  const savedSpace = filteredSpaces.value.find((space) => space.id === savedSpaceId)
+  if (savedSpace) {
+    await selectSpace(savedSpace)
   }
 })
 </script>
@@ -306,6 +329,7 @@ onMounted(async () => {
 
 .space-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -340,6 +364,36 @@ onMounted(async () => {
 .space-item p {
   margin: 10px 0 0;
   color: var(--es-text-secondary);
+}
+
+.space-item__detail {
+  flex: 1 0 100%;
+  width: 100%;
+  padding-top: 4px;
+}
+
+.inline-seat-layout {
+  display: grid;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.inline-seat-layout .seat-grid {
+  width: max-content;
+  max-width: 100%;
+  justify-self: center;
+  justify-content: center;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-actions {
+  flex-shrink: 0;
 }
 
 .room-reserve-panel {

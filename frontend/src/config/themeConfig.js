@@ -26,6 +26,7 @@ export const pageConfigs = {
   violation: { section: '学生端', icon: Warning, title: '违规记录', subtitle: '查看违规原因、累计次数和封禁状态' },
   adminDashboard: { section: '管理端', icon: DataAnalysis, title: '后台首页', subtitle: '查看今日预约、审批、报修和运营概览' },
   userManage: { section: '管理端', icon: User, title: '用户管理', subtitle: '管理学生账号、封禁状态和启用状态' },
+  adminRegister: { section: '管理端', icon: User, title: '注册新管理员', subtitle: '创建管理员账号并设置是否允许继续注册管理员' },
   spaceManage: { section: '管理端', icon: OfficeBuilding, title: '空间资源管理', subtitle: '维护校园空间类型、开放状态、审批规则和签到范围' },
   roomManage: { section: '管理端', icon: OfficeBuilding, title: '空间资源管理', subtitle: '维护校园空间类型、开放状态、审批规则和签到范围' },
   seatManage: { section: '管理端', icon: Grid, title: '座位/工位管理', subtitle: '以网格方式管理座位、故障状态和可用状态' },

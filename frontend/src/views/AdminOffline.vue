@@ -19,7 +19,7 @@
     </AppCard>
     <AppCard v-if="layout.roomId && selectedRoom && isSeatBased(selectedRoom)" :title="layout.roomName">
       <SeatLegend />
-      <div class="seat-grid" :style="{ gridTemplateColumns: `repeat(${layout.maxCol}, minmax(64px, 1fr))` }">
+      <div class="seat-grid" :style="{ gridTemplateColumns: `repeat(${layout.maxCol}, 88px)` }">
         <button v-for="seat in layout.seats" :key="seat.seatId" class="seat" :class="seat.displayStatus" :disabled="!seat.clickable" @click="reserve(seat)">
           <span class="seat-badges"><span v-if="seat.hasSocket">插</span><span v-if="seat.nearWindow">窗</span></span>
           <span class="seat-title">{{ seat.seatNo }}</span>

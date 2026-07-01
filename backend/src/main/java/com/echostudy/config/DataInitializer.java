@@ -42,22 +42,25 @@ public class DataInitializer implements CommandLineRunner {
 
     private void initUsers() {
         createUserIfAbsent("admin", "系统管理员", null, UserRole.ADMIN.name());
-        createUserIfAbsent("student", "演示学生", "20260001", UserRole.STUDENT.name());
+        createUserIfAbsent("student", "演示学生", "2026000001", UserRole.STUDENT.name());
     }
 
     private void createUserIfAbsent(String username, String realName, String studentNo, String role) {
-        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        Long count = userMapper.selectCount(new LambdaQueryWrapper<User>()
+                .eq(User::getRole, role)
+                .eq(User::getUsername, username));
         if (count > 0) {
             return;
         }
         User user = new User();
         user.setUsername(username);
-        user.setPassword(passwordEncoder.encode("123456"));
+        user.setPassword(passwordEncoder.encode("test123456"));
         user.setRealName(realName);
         user.setStudentNo(studentNo);
         user.setRole(role);
         user.setStatus(UserStatus.NORMAL.name());
         user.setViolationCount(0);
+        user.setCanRegisterAdmin(UserRole.ADMIN.name().equals(role));
         user.setCreateTime(LocalDateTime.now());
         userMapper.insert(user);
         log.info("EchoStudy initialized default {} account: {}", role, username);

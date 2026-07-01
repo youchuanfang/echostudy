@@ -4,13 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class LoginRequest {
+public class ForgotPasswordCodeRequest {
 
-    private String account;
-    private String username;
     @NotBlank
-    private String password;
+    private String phone;
     @NotBlank
     private String role;
-    private String loginType = "USERNAME";
 }

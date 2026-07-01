@@ -4,13 +4,13 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class LoginRequest {
+public class AdminRegisterRequest {
 
-    private String account;
+    @NotBlank
     private String username;
     @NotBlank
     private String password;
-    @NotBlank
-    private String role;
-    private String loginType = "USERNAME";
+    private String realName;
+    private String phone;
+    private Boolean canRegisterAdmin = false;
 }

@@ -1,7 +1,60 @@
 SET XACT_ABORT ON;
+SET QUOTED_IDENTIFIER ON;
 GO
 
 BEGIN TRANSACTION;
+
+IF COL_LENGTH('dbo.users', 'can_register_admin') IS NULL
+    ALTER TABLE dbo.users ADD can_register_admin BIT NOT NULL CONSTRAINT df_users_can_register_admin DEFAULT 0;
+
+DECLARE @dropUsernameConstraintSql NVARCHAR(MAX) = N'';
+SELECT @dropUsernameConstraintSql = @dropUsernameConstraintSql +
+    N'ALTER TABLE dbo.users DROP CONSTRAINT ' + QUOTENAME(kc.name) + N';'
+FROM sys.key_constraints kc
+JOIN sys.index_columns ic ON ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
+JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+WHERE kc.parent_object_id = OBJECT_ID('dbo.users')
+  AND kc.type = 'UQ'
+  AND c.name = 'username';
+
+IF @dropUsernameConstraintSql <> N''
+    EXEC sp_executesql @dropUsernameConstraintSql;
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'uk_users_username' AND object_id = OBJECT_ID('dbo.users'))
+    DROP INDEX uk_users_username ON dbo.users;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'uk_users_role_username' AND object_id = OBJECT_ID('dbo.users'))
+    CREATE UNIQUE INDEX uk_users_role_username ON dbo.users(role, username);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'uk_users_student_no' AND object_id = OBJECT_ID('dbo.users'))
+    CREATE UNIQUE INDEX uk_users_student_no ON dbo.users(student_no) WHERE student_no IS NOT NULL;
+
+EXEC sp_executesql N'
+UPDATE dbo.users
+SET can_register_admin = 1,
+    password = ''$2a$10$3IYgE2CZbF3gw1kGkkde7eTX434DJc59kAyqxM1uP4X0.V6sjRc0W'',
+    update_time = SYSDATETIME()
+WHERE username = ''admin'' AND role = ''ADMIN'';';
+
+UPDATE dbo.users
+SET password = '$2a$10$3IYgE2CZbF3gw1kGkkde7eTX434DJc59kAyqxM1uP4X0.V6sjRc0W',
+    update_time = SYSDATETIME()
+WHERE username = 'student' AND role = 'STUDENT';
+
+UPDATE dbo.users
+SET student_no = N'2026000001',
+    phone = COALESCE(phone, N'13800000000'),
+    update_time = SYSDATETIME()
+WHERE username = 'student'
+  AND role = 'STUDENT'
+  AND (student_no IS NULL OR LEN(student_no) <> 10);
+
+UPDATE dbo.users
+SET phone = N'13800000000',
+    update_time = SYSDATETIME()
+WHERE username = 'student'
+  AND role = 'STUDENT'
+  AND (phone IS NULL OR phone = N'');
 
 IF COL_LENGTH('dbo.study_room', 'space_type') IS NULL
     ALTER TABLE dbo.study_room ADD space_type NVARCHAR(30) NOT NULL CONSTRAINT df_study_room_space_type DEFAULT 'STUDY_ROOM';

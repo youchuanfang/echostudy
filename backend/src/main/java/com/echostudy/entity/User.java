@@ -22,6 +22,7 @@ public class User {
     private String status;
     private Integer violationCount;
     private LocalDateTime banEndTime;
+    private Boolean canRegisterAdmin;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }
