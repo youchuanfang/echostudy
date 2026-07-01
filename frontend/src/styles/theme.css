@@ -1,0 +1,109 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  font-family: Inter, "Microsoft YaHei", Arial, sans-serif;
+  background: var(--es-bg);
+  color: var(--es-text-main);
+}
+
+body {
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--es-primary);
+  --el-button-border-color: var(--es-primary);
+  --el-button-hover-bg-color: var(--es-primary-dark);
+  --el-button-hover-border-color: var(--es-primary-dark);
+  --el-button-active-bg-color: var(--es-primary-dark);
+  --el-button-active-border-color: var(--es-primary-dark);
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-date-editor.el-input__wrapper {
+  border-radius: var(--es-radius-sm);
+  box-shadow: 0 0 0 1px var(--es-border) inset;
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px rgba(47, 143, 131, 0.45) inset;
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--es-primary);
+  border-color: var(--es-primary);
+}
+
+.el-checkbox__input.is-checked + .el-checkbox__label {
+  color: var(--es-primary);
+}
+
+/* Element Plus 输入框、选择框、日期框统一增强 */
+.el-input__wrapper,
+.el-select__wrapper,
+.el-date-editor.el-input__wrapper {
+  min-height: 38px;
+  background: var(--es-field-bg) !important;
+  border-radius: 9px !important;
+  box-shadow:
+    0 0 0 1px var(--es-field-border) inset,
+    0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition:
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+/* hover 时边框更明显 */
+.el-input__wrapper:hover,
+.el-select__wrapper:hover,
+.el-date-editor.el-input__wrapper:hover {
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 1px var(--es-field-border-hover) inset,
+    0 2px 6px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* 聚焦时加主色描边和浅色光晕 */
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-date-editor.el-input__wrapper.is-focus {
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 1px var(--es-field-focus) inset,
+    0 0 0 4px var(--es-field-focus-shadow) !important;
+}
+
+/* 输入框文字 */
+.el-input__inner,
+.el-select__placeholder,
+.el-select__selected-item {
+  color: #1f2937 !important;
+  font-weight: 500;
+}
+
+/* placeholder 不要太浅 */
+.el-input__inner::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 输入框图标颜色加深 */
+.el-input__prefix,
+.el-input__suffix,
+.el-select__suffix {
+  color: #7c8fa3 !important;
+}

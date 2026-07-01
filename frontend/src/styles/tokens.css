@@ -1,0 +1,55 @@
+:root {
+  /* 品牌主色：按钮、菜单选中、图标块、强调色 */
+  --es-primary: #2f8f83;
+  --es-primary-dark: #1f766b;
+  --es-primary-light: #e7f5f2;
+
+  /* 页面背景：浅蓝灰底布 */
+  --es-bg: #eaf3fb;
+  --es-bg-soft: #f6fbff;
+  --es-bg-tint: #dcecf7;
+
+  /* 左侧导航与卡片 */
+  --es-sidebar-bg: #ffffff;
+  --es-card-bg: #ffffff;
+
+  /* 边框：不要太绿，改成蓝灰，更高级 */
+  --es-border: #d7e3ee;
+  --es-border-strong: #b7cbdc;
+
+  /* 文字 */
+  --es-text-main: #172554;
+  --es-text-secondary: #64748b;
+  --es-text-muted: #94a3b8;
+
+  /* 状态色 */
+  --es-success: #2f8f83;
+  --es-danger: #ef4444;
+  --es-warning: #f59e0b;
+  --es-info: #64748b;
+  --es-blue: #3b82f6;
+  --es-purple: #7c3aed;
+
+  /* 圆角 */
+  --es-radius-sm: 8px;
+  --es-radius-md: 12px;
+  --es-radius-lg: 16px;
+  --es-radius-xl: 20px;
+
+  /* 阴影：柔和但有层次 */
+  --es-shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --es-shadow-hover: 0 18px 42px rgba(15, 23, 42, 0.12);
+
+  /* 布局 */
+  --es-sidebar-width: 220px;
+  --es-header-height: 60px;
+  --es-content-padding: 28px;
+
+  /* 表单控件 */
+  --es-field-bg: #fbfdff;
+  --es-field-border: #9fb6c8;
+  --es-field-border-hover: #6f9aaa;
+  --es-field-focus: #2f8f83;
+  --es-field-focus-shadow: rgba(47, 143, 131, 0.16);
+  --es-label-color: #334155;
+}

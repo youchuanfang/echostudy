@@ -1,0 +1,31 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: EchoStudy
+  datasource:
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:sqlserver://localhost:1433;databaseName=echo_study;encrypt=true;trustServerCertificate=true
+    username: echo_user
+    password: EchoStudy@123456
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+reservation:
+  online-max-duration-enabled: true
+  online-max-duration-minutes: 240
+  grace-minutes: 5
+  first-sign-deadline-minutes: 15
+  ban-days: 3
+
+jwt:
+  secret: EchoStudyJwtSecretKeyForLocalDevelopmentOnlyChangeInProduction
+  expire-minutes: 1440
+
+knife4j:
+  enable: true

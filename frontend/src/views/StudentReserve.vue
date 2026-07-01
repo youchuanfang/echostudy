@@ -1,0 +1,369 @@
+<template>
+  <div class="es-page">
+    <PageHeader page-key="spaceReserve" />
+
+    <AppCard title="楼栋分类">
+      <div class="building-cards">
+        <button
+          class="building-card"
+          :class="{ active: filters.building === 'ALL' }"
+          type="button"
+          @click="selectBuilding('ALL')"
+        >
+          全部
+        </button>
+        <button
+          v-for="building in buildings"
+          :key="building"
+          class="building-card"
+          :class="{ active: filters.building === building }"
+          type="button"
+          @click="selectBuilding(building)"
+        >
+          {{ building }}
+        </button>
+      </div>
+    </AppCard>
+
+    <AppCard title="筛选条件">
+      <div class="form-grid">
+        <el-form-item label="空间类型">
+          <el-select v-model="filters.spaceType" clearable placeholder="全部类型">
+            <el-option v-for="type in spaceTypes" :key="type" :label="spaceTypeMap[type]" :value="type" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="目标日期"><el-date-picker v-model="form.reserveDate" type="date" value-format="YYYY-MM-DD" /></el-form-item>
+        <el-form-item label="开始时间">
+          <el-select v-model="form.startTime"><el-option v-for="n in nodes" :key="n.id" :label="timeText(n.timeValue)" :value="n.timeValue" /></el-select>
+        </el-form-item>
+        <el-form-item label="结束时间">
+          <el-select v-model="form.endTime"><el-option v-for="n in nodes" :key="n.id" :label="timeText(n.timeValue)" :value="n.timeValue" /></el-select>
+        </el-form-item>
+        <el-form-item label="只看开放空间"><el-switch v-model="filters.openOnly" /></el-form-item>
+        <div class="form-action"><el-button type="primary" @click="loadSpaces">搜索</el-button></div>
+      </div>
+    </AppCard>
+
+    <AppCard title="空间资源列表">
+      <div class="space-list">
+        <div
+          v-for="space in filteredSpaces"
+          :key="space.id"
+          class="space-item"
+          :class="{ active: form.roomId === space.id }"
+        >
+          <div class="space-item__main">
+            <div class="space-item__title">
+              <strong>{{ space.name }}</strong>
+              <StatusTag :value="space.spaceType" />
+              <span class="approval-pill">{{ space.needApproval ? '需要审批' : '无需审批' }}</span>
+            </div>
+            <div class="space-item__meta">
+              <span>{{ [space.building, space.floorNo, space.locationDesc].filter(Boolean).join(' / ') || '暂无位置' }}</span>
+              <span>容量 {{ space.capacity || 0 }}</span>
+              <span>{{ timeText(space.openTime) }} - {{ timeText(space.closeTime) }}</span>
+            </div>
+            <p>{{ space.usageNotice || space.description || '暂无使用须知' }}</p>
+          </div>
+          <el-button type="primary" plain @click="selectSpace(space)">
+            {{ isSeatBased(space) ? '选择座位/工位' : '预约该空间' }}
+          </el-button>
+        </div>
+      </div>
+    </AppCard>
+
+    <AppCard v-if="selectedSpace && !isSeatBased(selectedSpace)" :title="`${selectedSpace.name} 整间预约`">
+      <div class="room-reserve-panel">
+        <div>
+          <strong>{{ selectedSpace.name }}</strong>
+          <p>{{ selectedSpace.usageNotice || selectedSpace.description || '该空间按整间预约，无需选择座位/工位。' }}</p>
+        </div>
+        <el-button type="primary" @click="reserveRoom">提交预约</el-button>
+      </div>
+    </AppCard>
+
+    <AppCard v-if="layout.roomId && selectedSpace && isSeatBased(selectedSpace)" :title="`${layout.roomName} 座位/工位`">
+      <SeatLegend />
+      <div class="seat-grid" :style="{ gridTemplateColumns: `repeat(${layout.maxCol}, minmax(64px, 1fr))` }">
+        <button
+          v-for="seat in layout.seats"
+          :key="seat.seatId"
+          class="seat"
+          :class="seat.displayStatus"
+          :disabled="!seat.clickable"
+          @click="reserve(seat)"
+        >
+          <span class="seat-badges"><span v-if="seat.hasSocket">电</span><span v-if="seat.nearWindow">窗</span></span>
+          <span class="seat-title">{{ seat.seatNo }}</span>
+          <span class="seat-subtitle">{{ statusText(seat.displayStatus) }}</span>
+        </button>
+      </div>
+    </AppCard>
+
+    <el-dialog v-model="approvalDialog" title="提交审批预约" width="520px">
+      <el-form :model="approvalForm" label-position="top">
+        <el-form-item label="预约用途"><el-input v-model="approvalForm.purpose" type="textarea" :rows="3" /></el-form-item>
+        <el-form-item label="参与人数"><el-input-number v-model="approvalForm.participantCount" :min="1" style="width: 100%" /></el-form-item>
+        <el-form-item label="联系电话"><el-input v-model="approvalForm.contactPhone" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="approvalDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitReservation">提交申请</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import api from '../api'
+import AppCard from '../components/AppCard.vue'
+import PageHeader from '../components/PageHeader.vue'
+import SeatLegend from '../components/SeatLegend.vue'
+import StatusTag from '../components/StatusTag.vue'
+import { spaceTypeMap, statusText } from '../config/statusMap'
+
+const router = useRouter()
+const spaceTypes = ['STUDY_ROOM', 'SEMINAR_ROOM', 'CLASSROOM', 'LAB_SEAT', 'PUBLIC_AREA']
+const seatBasedTypes = ['STUDY_ROOM', 'PUBLIC_AREA', 'LAB_SEAT']
+const spaces = ref([])
+const buildings = ref([])
+const nodes = ref([])
+const layout = ref({})
+const selectedSeat = ref(null)
+const approvalDialog = ref(false)
+const filters = reactive({ building: 'ALL', spaceType: '', openOnly: true })
+const form = reactive({
+  reserveDate: new Date().toISOString().slice(0, 10),
+  roomId: null,
+  startTime: '08:00:00',
+  endTime: '09:00:00'
+})
+const approvalForm = reactive({ purpose: '', participantCount: 1, contactPhone: '' })
+
+const selectedSpace = computed(() => spaces.value.find((space) => space.id === form.roomId))
+const filteredSpaces = computed(() => spaces.value.filter((space) => {
+  if (filters.spaceType && space.spaceType !== filters.spaceType) return false
+  if (filters.openOnly && !space.openStatus) return false
+  return true
+}))
+
+function timeText(value) {
+  return String(value || '').slice(0, 5)
+}
+
+function isSeatBased(space) {
+  return space && seatBasedTypes.includes(space.spaceType)
+}
+
+async function loadSpaces() {
+  spaces.value = await api.get('/student/spaces', {
+    params: filters.building && filters.building !== 'ALL' ? { building: filters.building } : {}
+  })
+  if (!spaces.value.some((space) => space.id === form.roomId)) {
+    form.roomId = filteredSpaces.value[0]?.id || null
+    layout.value = {}
+  }
+}
+
+async function loadBuildings() {
+  buildings.value = await api.get('/student/buildings')
+}
+
+async function selectBuilding(building) {
+  filters.building = building
+  await loadSpaces()
+}
+
+async function loadNodes() {
+  nodes.value = await api.get('/student/time-nodes')
+}
+
+async function selectSpace(space) {
+  form.roomId = space.id
+  selectedSeat.value = null
+  if (isSeatBased(space)) {
+    await loadLayout()
+  } else {
+    layout.value = {}
+  }
+}
+
+async function loadLayout() {
+  if (!form.roomId) {
+    ElMessage.warning('请先选择空间')
+    return
+  }
+  if (!isSeatBased(selectedSpace.value)) {
+    layout.value = {}
+    return
+  }
+  layout.value = await api.get('/student/seats/layout', {
+    params: {
+      roomId: form.roomId,
+      date: form.reserveDate,
+      startTime: form.startTime,
+      endTime: form.endTime
+    }
+  })
+}
+
+async function reserveRoom() {
+  selectedSeat.value = null
+  if (selectedSpace.value?.needApproval) {
+    approvalForm.purpose = ''
+    approvalForm.participantCount = 1
+    approvalForm.contactPhone = ''
+    approvalDialog.value = true
+    return
+  }
+  await ElMessageBox.confirm(`确认预约空间 ${selectedSpace.value.name}？`)
+  await submitReservation()
+}
+
+async function reserve(seat) {
+  selectedSeat.value = seat
+  if (selectedSpace.value?.needApproval) {
+    approvalForm.purpose = ''
+    approvalForm.participantCount = 1
+    approvalForm.contactPhone = ''
+    approvalDialog.value = true
+    return
+  }
+  await ElMessageBox.confirm(`确认预约座位/工位 ${seat.seatNo}？`)
+  await submitReservation()
+}
+
+async function submitReservation() {
+  const payload = {
+    ...form
+  }
+  if (selectedSeat.value?.seatId) {
+    payload.seatId = selectedSeat.value.seatId
+  }
+  if (selectedSpace.value?.needApproval) {
+    Object.assign(payload, approvalForm)
+  }
+  const result = await api.post('/student/reservations/online', payload)
+  approvalDialog.value = false
+  ElMessage.success(result.status === 'PENDING_APPROVAL' ? '预约申请已提交，请等待管理员审批' : '预约成功')
+  if (isSeatBased(selectedSpace.value)) {
+    await loadLayout()
+  }
+  ElMessageBox.confirm('是否查看我的预约？', '提交成功', {
+    confirmButtonText: '查看我的预约',
+    cancelButtonText: '继续预约',
+    type: 'success'
+  }).then(() => router.push('/student/reservations')).catch(() => {})
+}
+
+onMounted(async () => {
+  await Promise.all([loadBuildings(), loadSpaces(), loadNodes()])
+  if (filteredSpaces.value[0]) {
+    form.roomId = filteredSpaces.value[0].id
+  }
+})
+</script>
+
+<style scoped>
+.building-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.building-card {
+  min-width: 86px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-sm);
+  background: #f8fbff;
+  color: var(--es-text-secondary);
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.building-card:hover {
+  border-color: var(--es-primary);
+  color: var(--es-primary);
+}
+
+.building-card.active {
+  border-color: var(--es-primary);
+  background: var(--es-primary);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(47, 143, 131, 0.16);
+}
+
+.space-list {
+  display: grid;
+  gap: 14px;
+}
+
+.space-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-md);
+  background: #ffffff;
+}
+
+.space-item.active {
+  border-color: var(--es-primary);
+  box-shadow: 0 8px 20px rgba(47, 143, 131, 0.12);
+}
+
+.space-item__title,
+.space-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.space-item__title {
+  margin-bottom: 8px;
+}
+
+.space-item__meta {
+  color: var(--es-text-secondary);
+  font-size: 13px;
+}
+
+.space-item p {
+  margin: 10px 0 0;
+  color: var(--es-text-secondary);
+}
+
+.room-reserve-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--es-border);
+  border-radius: var(--es-radius-md);
+  background: #ffffff;
+}
+
+.room-reserve-panel p {
+  margin: 8px 0 0;
+  color: var(--es-text-secondary);
+}
+
+.approval-pill {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+</style>

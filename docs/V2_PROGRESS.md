@@ -1,0 +1,275 @@
+# V2 Progress
+
+## V2-0 修复和验证 v2_upgrade.sql
+
+- 阶段名称：V2-0 修复和验证 v2_upgrade.sql
+- 修改的后端文件：
+  - `backend/src/main/resources/db/v2_upgrade.sql`
+- 修改的前端文件：无
+- 新增接口：无
+- 新增页面：无
+- 数据库变更：
+  - 修复升级脚本为 sqlcmd 友好的幂等脚本。
+  - 已用 `sqlcmd -i` 执行并复查 `study_room`、`reservation` 的 V2 字段，以及 `repair_record`、`announcement`、`notification`、`system_config`、`config_change_log`、`leave_record`、`operation_log` 表。
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 前端构建仍有 Vite chunk 体积提示和第三方注释提示，不影响构建结果。
+
+## V2-4 公告通知与消息中心
+
+- 阶段名称：V2-4 公告通知与消息中心
+- 修改的后端文件：
+  - `backend/src/main/java/com/echostudy/dto/AnnouncementRequest.java`
+  - `backend/src/main/java/com/echostudy/vo/NotificationVO.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminAnnouncementController.java`
+  - `backend/src/main/java/com/echostudy/controller/StudentAnnouncementController.java`
+  - `backend/src/main/java/com/echostudy/controller/NotificationController.java`
+  - `backend/src/main/java/com/echostudy/service/impl/ViolationServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/service/impl/AiReservationServiceImpl.java`
+- 修改的前端文件：
+  - `frontend/src/router.js`
+  - `frontend/src/components/AppLayout.vue`
+  - `frontend/src/config/themeConfig.js`
+  - `frontend/src/config/statusMap.js`
+  - `frontend/src/views/AdminAnnouncements.vue`
+  - `frontend/src/views/StudentNotifications.vue`
+  - `frontend/src/views/AdminNotifications.vue`
+  - `frontend/src/views/StudentDashboard.vue`
+- 新增接口：
+  - `GET /api/admin/announcements`
+  - `POST /api/admin/announcements`
+  - `PUT /api/admin/announcements/{id}`
+  - `DELETE /api/admin/announcements/{id}`
+  - `POST /api/admin/announcements/{id}/publish`
+  - `POST /api/admin/announcements/{id}/disable`
+  - `POST /api/admin/announcements/{id}/pin`
+  - `POST /api/admin/announcements/{id}/unpin`
+  - `GET /api/student/announcements`
+  - `GET /api/student/notifications`
+  - `GET /api/student/notifications/unread-count`
+  - `POST /api/student/notifications/{id}/read`
+  - `POST /api/student/notifications/read-all`
+  - `GET /api/admin/notifications`
+- 新增页面：
+  - `/admin/announcements` 公告管理
+  - `/student/notifications` 我的消息
+  - `/admin/notifications` 消息管理
+- 数据库变更：
+  - 使用既有 `announcement`、`notification`、`operation_log` 表。
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 审批、报修、公告、违规、封禁恢复、AI 成功/失败已写 notification。
+  - 前端构建仍有 Vite chunk 体积提示和第三方注释提示，不影响构建结果。
+
+## V2-5 系统规则配置与操作日志
+
+- 阶段名称：V2-5 系统规则配置 + 操作日志
+- 修改的后端文件：
+  - `backend/src/main/java/com/echostudy/dto/ConfigUpdateRequest.java`
+  - `backend/src/main/java/com/echostudy/vo/SystemConfigVO.java`
+  - `backend/src/main/java/com/echostudy/vo/ConfigChangeLogVO.java`
+  - `backend/src/main/java/com/echostudy/vo/OperationLogVO.java`
+  - `backend/src/main/java/com/echostudy/service/ConfigService.java`
+  - `backend/src/main/java/com/echostudy/service/impl/ConfigServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminConfigController.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminOperationLogController.java`
+  - `backend/src/main/java/com/echostudy/service/impl/ReservationServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/service/impl/RepairServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/service/impl/ViolationServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/service/impl/AiReservationServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminSpaceController.java`
+- 修改的前端文件：
+  - `frontend/src/router.js`
+  - `frontend/src/components/AppLayout.vue`
+  - `frontend/src/config/themeConfig.js`
+  - `frontend/src/config/statusMap.js`
+  - `frontend/src/views/AdminConfigs.vue`
+  - `frontend/src/views/AdminOperationLogs.vue`
+- 新增接口：
+  - `GET /api/admin/configs`
+  - `PUT /api/admin/configs/{key}`
+  - `GET /api/admin/config-logs`
+  - `GET /api/admin/operation-logs`
+- 新增页面：
+  - `/admin/configs` 规则配置
+  - `/admin/operation-logs` 操作日志
+- 数据库变更：
+  - 使用既有 `system_config`、`config_change_log`、`operation_log` 表。
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 首次因 `long` 默认值传入 `int` 参数失败，已修复 `ConfigService.getInt` 默认值参数类型后通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 已接入签到期限、暂离时长、返座弹性、封禁阈值、封禁天数、最大预约时长、定位签到、AI 启用、审批启用、报修启用。
+  - 操作日志已覆盖空间、审批、报修、公告、配置等关键路径；部分旧页面的历史操作日志覆盖仍可继续细化。
+
+## V2-6 学习统计与运营统计分析
+
+- 阶段名称：V2-6 学习统计与运营统计分析
+- 修改的后端文件：
+  - `backend/src/main/java/com/echostudy/service/impl/ReservationServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/task/ReservationMaintenanceTask.java`
+  - `backend/src/main/java/com/echostudy/controller/StudentStatisticsController.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminStatisticsController.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminDashboardController.java`
+- 修改的前端文件：
+  - `frontend/src/router.js`
+  - `frontend/src/components/AppLayout.vue`
+  - `frontend/src/config/themeConfig.js`
+  - `frontend/src/views/StudentStatistics.vue`
+  - `frontend/src/views/AdminStatistics.vue`
+  - `frontend/src/views/AdminDashboard.vue`
+- 新增接口：
+  - `GET /api/student/statistics/learning`
+  - `GET /api/admin/statistics/overview`
+  - `GET /api/admin/statistics/spaces`
+  - `GET /api/admin/statistics/repairs`
+  - `GET /api/admin/statistics/approvals`
+  - `GET /api/admin/statistics/learning-rank`
+- 新增页面：
+  - `/student/statistics` 学习统计
+  - `/admin/statistics` 统计分析
+- 数据库变更：
+  - 暂离时写入 `leave_record`，返座时更新 `leave_record`，暂离超时时标记 `TIMEOUT`。
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 学习排行当前以完成次数为主；学生个人学习时长已扣除已返座暂离时长。
+  - 前端构建仍有 Vite chunk 体积提示和第三方注释提示，不影响构建结果。
+
+## V2-7 全局检查与交付整理
+
+- 阶段名称：V2-7 全局 UI、菜单、路由、跳转、状态中文和交付检查
+- 修改的后端文件：
+  - 无新增业务修改；执行最终构建检查。
+- 修改的前端文件：
+  - `frontend/src/components/AppLayout.vue`
+  - `frontend/src/config/themeConfig.js`
+  - `frontend/src/config/statusMap.js`
+  - `frontend/src/router.js`
+- 新增接口：无
+- 新增页面：无
+- 数据库变更：无
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 前端构建仍有 Vite chunk 体积提示和第三方注释提示，不影响构建结果。
+  - 旧页面部分文案仍可继续细化，但新增 V2 页面、菜单、状态映射和构建已完成。
+
+## V2-3 资源报修与维修管理
+
+- 阶段名称：V2-3 资源报修与维修管理
+- 修改的后端文件：
+  - `backend/src/main/java/com/echostudy/dto/RepairRequest.java`
+  - `backend/src/main/java/com/echostudy/dto/AdminRepairHandleRequest.java`
+  - `backend/src/main/java/com/echostudy/vo/RepairVO.java`
+  - `backend/src/main/java/com/echostudy/service/RepairService.java`
+  - `backend/src/main/java/com/echostudy/service/impl/RepairServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/controller/StudentRepairController.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminRepairController.java`
+  - `backend/src/main/java/com/echostudy/controller/StudentResourceController.java`
+- 修改的前端文件：
+  - `frontend/src/router.js`
+  - `frontend/src/components/AppLayout.vue`
+  - `frontend/src/config/themeConfig.js`
+  - `frontend/src/config/statusMap.js`
+  - `frontend/src/views/StudentRepairs.vue`
+  - `frontend/src/views/AdminRepairs.vue`
+- 新增接口：
+  - `POST /api/student/repairs`
+  - `GET /api/student/repairs/my`
+  - `POST /api/student/repairs/{id}/cancel`
+  - `GET /api/admin/repairs`
+  - `GET /api/admin/repairs/{id}`
+  - `POST /api/admin/repairs/{id}/accept`
+  - `POST /api/admin/repairs/{id}/process`
+  - `POST /api/admin/repairs/{id}/reject`
+  - `POST /api/admin/repairs/{id}/finish`
+  - `GET /api/student/spaces/{id}/seats`
+- 新增页面：
+  - `/student/repairs` 资源报修
+  - `/admin/repairs` 报修管理
+- 数据库变更：
+  - 使用既有 `repair_record`、`notification`、`operation_log`、`seat.faulty`、`study_room.open_status`。
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 前端构建仍有 Vite chunk 体积提示和第三方注释提示，不影响构建结果。
+## V2-9 空间预约单位规则修正
+
+- 阶段名称：空间预约单位规则修正
+- 规则调整：
+  - `STUDY_ROOM`、`PUBLIC_AREA`、`LAB_SEAT`：按座位/工位预约。
+  - `SEMINAR_ROOM`、`CLASSROOM`：按整间空间预约，不维护座位/工位。
+- 修改的后端文件：
+  - `backend/src/main/java/com/echostudy/dto/OnlineReservationRequest.java`
+  - `backend/src/main/java/com/echostudy/dto/OfflineReservationRequest.java`
+  - `backend/src/main/java/com/echostudy/service/impl/ReservationServiceImpl.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminSeatController.java`
+  - `backend/src/main/java/com/echostudy/controller/StudentResourceController.java`
+- 修改的前端文件：
+  - `frontend/src/views/StudentReserve.vue`
+  - `frontend/src/views/AdminSeats.vue`
+  - `frontend/src/views/AdminOffline.vue`
+  - `frontend/src/views/StudentReservations.vue`
+  - `frontend/src/views/AdminApprovals.vue`
+  - `frontend/src/views/AdminReservations.vue`
+  - `frontend/src/views/StudentRepairs.vue`
+  - `frontend/src/views/AdminRepairs.vue`
+- 修改的 SQL 文件：
+  - `backend/src/main/resources/db/schema.sql`
+  - `backend/src/main/resources/db/v2_upgrade.sql`
+  - `backend/src/main/resources/db/v2_seed_spaces.sql`
+- 数据库执行结果：
+  - 已执行 `v2_upgrade.sql`，`reservation.seat_id` 已调整为可空。
+  - 已执行 `v2_seed_spaces.sql`，脚本维护的座位/工位数调整为 490。
+  - 当前库中 `CLASSROOM` 与 `SEMINAR_ROOM` 关联座位数为 0。
+  - 当前库总座位/工位数为 538，其中包含旧默认自习室保留的座位；旧默认空间仍为停用状态。
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 前端构建仍有第三方 `@vueuse/core` PURE 注释提示和 Vite chunk 体积提示，不影响构建结果。
+
+## V2-8 空间资源初始化数据 + 楼栋分类筛选功能
+
+- 阶段名称：V2-8 空间资源初始化数据 + 楼栋分类筛选功能
+- 修改的后端文件：
+  - `backend/src/main/java/com/echostudy/controller/StudentResourceController.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminSpaceController.java`
+  - `backend/src/main/java/com/echostudy/controller/AdminBuildingController.java`
+- 修改的前端文件：
+  - `frontend/src/views/StudentReserve.vue`
+  - `frontend/src/views/AdminRooms.vue`
+- 新增 SQL 脚本：
+  - `backend/src/main/resources/db/v2_seed_spaces.sql`
+- 新增/完善接口：
+  - `GET /api/student/buildings`
+  - `GET /api/admin/buildings`
+  - `GET /api/student/spaces?building=科研楼`
+  - `GET /api/admin/spaces?building=综合楼`
+- 数据库执行结果：
+  - 使用 `sqlcmd -b -f 65001` 执行 `v2_seed_spaces.sql` 成功；脚本已保存为 UTF-8 BOM，附件中的原始 `sqlcmd -i` 命令复跑成功。
+  - 本次脚本初始化/维护空间资源 87 个、座位/工位 3258 个。
+  - 数据库当前总空间 89 个、总座位/工位 3306 个；其中 2 个旧默认资源为 `图书馆二楼阅览区`、`明德楼一楼自习室`，已设置 `open_status = 0`。
+  - 楼栋列表：`教学楼3`、`科研楼`、`学19楼`、`综合楼`。
+  - 类型统计：`CLASSROOM=68`、`LAB_SEAT=12`、`SEMINAR_ROOM=4`、`STUDY_ROOM=5`。
+  - 已验证关键空间：`教三101`、`教三110`、`学19楼下自习室`、`科研楼1010`、`综合楼101`。
+  - 脚本重复执行后空间与座位数量未重复增加，幂等验证通过。
+- 前端交互结果：
+  - 学生端空间预约页新增动态楼栋卡片，选择楼栋后联动 `/api/student/spaces` 的 `building` 参数。
+  - 管理端空间资源页新增动态楼栋卡片，选择楼栋后联动 `/api/admin/spaces` 的 `building` 参数。
+  - 管理端新增/编辑空间时，楼栋字段改为已有楼栋下拉 + `其他` 输入；保存成功后刷新楼栋卡片和下拉选项。
+  - 管理端楼层字段改为 `el-input-number`，限制 `min=1`、`step=1`、`precision=0`，placeholder 为 `请输入数字，例如 1、2、10`。
+- 构建结果：
+  - 后端 `mvn -q -DskipTests package` 通过。
+  - 前端 `npm run build` 通过。
+- 未完成项或风险点：
+  - 前端构建仍有第三方 `@vueuse/core` PURE 注释提示和 Vite chunk 体积提示，不影响构建结果。
+  - 当前目录不是 git 仓库，无法输出 `git status`/`git diff`。
