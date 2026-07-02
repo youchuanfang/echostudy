@@ -10,9 +10,10 @@ IF COL_LENGTH('dbo.users', 'can_register_admin') IS NULL
 IF COL_LENGTH('dbo.users', 'credit_score') IS NULL
     ALTER TABLE dbo.users ADD credit_score INT NOT NULL CONSTRAINT df_users_credit_score DEFAULT 100;
 
+EXEC sp_executesql N'
 UPDATE dbo.users
 SET credit_score = 100
-WHERE credit_score IS NULL;
+WHERE credit_score IS NULL;';
 
 DECLARE @dropUsernameConstraintSql NVARCHAR(MAX) = N'';
 SELECT @dropUsernameConstraintSql = @dropUsernameConstraintSql +
