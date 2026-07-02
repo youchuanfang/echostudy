@@ -360,11 +360,16 @@ public class ReservationServiceImpl implements ReservationService {
         if (!"STUDENT".equals(user.getRole())) {
             throw new BusinessException("只能为学生创建预约");
         }
+        ensureCreditAllowsReservation(user);
         if (!endTime.isAfter(startTime)) {
             throw new BusinessException("结束时间必须晚于开始时间");
         }
-        if (date.isBefore(LocalDate.now())) {
+        LocalDate today = LocalDate.now();
+        if (date.isBefore(today)) {
             throw new BusinessException("不能预约过去日期");
+        }
+        if (isCurrentTimeLimitedSource(source) && date.equals(today) && startTime.isBefore(LocalTime.now().withSecond(0).withNano(0))) {
+            throw new BusinessException("开始时间不能早于当前时间");
         }
         StudyRoom room = requireRoom(roomId);
         if (!Boolean.TRUE.equals(room.getOpenStatus())) {
@@ -446,6 +451,21 @@ public class ReservationServiceImpl implements ReservationService {
 
     private boolean isSeatBasedSpace(StudyRoom room) {
         return room != null && SEAT_BASED_SPACE_TYPES.contains(room.getSpaceType());
+    }
+
+    private boolean isCurrentTimeLimitedSource(String source) {
+        return ReservationSource.ONLINE.name().equals(source) || ReservationSource.AI.name().equals(source);
+    }
+
+    private void ensureCreditAllowsReservation(User user) {
+        if (!configService.getBoolean("low_credit_reservation_block_enabled", true)) {
+            return;
+        }
+        int threshold = configService.getInt("credit_low_threshold", 60);
+        int creditScore = user.getCreditScore() == null ? configService.getInt("credit_initial_score", 100) : user.getCreditScore();
+        if (creditScore < threshold) {
+            throw new BusinessException("当前信用分为 " + creditScore + " 分，低于预约阈值 " + threshold + " 分，暂不能创建预约。请按时履约、联系管理员调整，或对有异议的违规记录提交申诉。");
+        }
     }
 
     private LambdaQueryWrapper<Reservation> baseConflictQuery(LocalDate date, LocalTime startTime, LocalTime endTime) {

@@ -28,6 +28,7 @@
     <AppCard title="空间资源">
       <div class="toolbar">
         <el-select v-model="filters.spaceType" clearable placeholder="空间类型" style="width: 180px" @change="load">
+          <el-option label="全部" value="" />
           <el-option v-for="type in spaceTypes" :key="type" :label="spaceTypeMap[type]" :value="type" />
         </el-select>
         <el-button type="primary" @click="openCreate">新增空间</el-button>

@@ -1,7 +1,10 @@
 package com.echostudy.service;
 
 import com.echostudy.entity.Reservation;
-import com.echostudy.entity.ViolationRecord;
+import com.echostudy.dto.ViolationAppealRequest;
+import com.echostudy.dto.ViolationAppealReviewRequest;
+import com.echostudy.vo.ViolationAppealVO;
+import com.echostudy.vo.ViolationRecordVO;
 
 import java.util.List;
 
@@ -11,7 +14,17 @@ public interface ViolationService {
 
     void restoreExpiredBans();
 
-    List<ViolationRecord> myViolations();
+    List<ViolationRecordVO> myViolations();
 
-    List<ViolationRecord> allViolations();
+    List<ViolationRecordVO> allViolations();
+
+    ViolationAppealVO createAppeal(Long violationId, ViolationAppealRequest request);
+
+    List<ViolationAppealVO> myAppeals();
+
+    List<ViolationAppealVO> allAppeals(String status);
+
+    ViolationAppealVO approveAppeal(Long appealId, ViolationAppealReviewRequest request);
+
+    ViolationAppealVO rejectAppeal(Long appealId, ViolationAppealReviewRequest request);
 }

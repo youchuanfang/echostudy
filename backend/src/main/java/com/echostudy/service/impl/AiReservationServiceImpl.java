@@ -48,8 +48,12 @@ public class AiReservationServiceImpl implements AiReservationService {
         if (!request.getEndTime().isAfter(request.getStartTime())) {
             throw new BusinessException("结束时间必须晚于开始时间");
         }
-        if (request.getTargetDate().isBefore(LocalDate.now())) {
+        LocalDate today = LocalDate.now();
+        if (request.getTargetDate().isBefore(today)) {
             throw new BusinessException("不能创建过去日期的 AI 任务");
+        }
+        if (request.getTargetDate().equals(today) && request.getStartTime().isBefore(LocalDateTime.now().toLocalTime().withSecond(0).withNano(0))) {
+            throw new BusinessException("开始时间不能早于当前时间");
         }
         AiReservationTask task = new AiReservationTask();
         task.setUserId(UserContext.getUserId());
@@ -125,8 +129,11 @@ public class AiReservationServiceImpl implements AiReservationService {
             aiReservationTaskMapper.updateById(task);
             createNotification(task.getUserId(), "AI 预约成功", "AI 已为您创建预约 #" + reservation.getId(),
                     "AI_TASK", "AI_TASK", task.getId());
-        } catch (Exception ex) {
+        } catch (BusinessException ex) {
             fail(task, ex.getMessage());
+        } catch (Exception ex) {
+            log.warn("AI reservation task failed unexpectedly, taskId={}", task.getId(), ex);
+            fail(task, "AI 自动预约暂时无法完成，请稍后重试或调整预约条件");
         }
     }
 

@@ -54,6 +54,7 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(UserRole.STUDENT.name());
         user.setStatus(UserStatus.NORMAL.name());
         user.setViolationCount(0);
+        user.setCreditScore(100);
         user.setCanRegisterAdmin(false);
         user.setCreateTime(LocalDateTime.now());
         userMapper.insert(user);
@@ -77,6 +78,7 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(UserRole.ADMIN.name());
         user.setStatus(UserStatus.NORMAL.name());
         user.setViolationCount(0);
+        user.setCreditScore(100);
         user.setCanRegisterAdmin(Boolean.TRUE.equals(request.getCanRegisterAdmin()));
         user.setCreateTime(LocalDateTime.now());
         userMapper.insert(user);

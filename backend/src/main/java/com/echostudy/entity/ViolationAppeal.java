@@ -8,22 +8,19 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("users")
-public class User {
+@TableName("violation_appeal")
+public class ViolationAppeal {
 
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String username;
-    private String password;
-    private String realName;
-    private String studentNo;
-    private String phone;
-    private String role;
+    private Long violationId;
+    private Long userId;
+    private String reason;
+    private String evidence;
     private String status;
-    private Integer violationCount;
-    private Integer creditScore;
-    private LocalDateTime banEndTime;
-    private Boolean canRegisterAdmin;
+    private Long reviewAdminId;
+    private String reviewReply;
+    private LocalDateTime reviewTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

@@ -12,6 +12,7 @@ import com.echostudy.mapper.SeatMapper;
 import com.echostudy.mapper.StudyRoomMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -83,40 +86,83 @@ public class AdminSeatController {
         seat.setId(id);
         seat.setEnabled(request.getEnabled());
         seat.setFaulty(request.getFaulty());
+        seat.setHasSocket(request.getHasSocket());
+        seat.setNearWindow(request.getNearWindow());
         seat.setUpdateTime(LocalDateTime.now());
         seatMapper.updateById(seat);
         return Result.ok(seatMapper.selectById(id));
     }
 
     @PostMapping("/batch-generate")
+    @Transactional
     public Result<Integer> batchGenerate(@Valid @RequestBody BatchGenerateSeatRequest request) {
         requireSeatBasedRoom(request.getRoomId());
-        int created = 0;
+        if (request.getRows() <= 0 || request.getCols() <= 0) {
+            throw new BusinessException("行数和列数必须大于 0");
+        }
+        List<Seat> existingSeats = seatMapper.selectList(new LambdaQueryWrapper<Seat>()
+                .eq(Seat::getRoomId, request.getRoomId()));
+        for (Seat existing : existingSeats) {
+            Seat update = new Seat();
+            update.setId(existing.getId());
+            update.setSeatNo("__TMP_" + existing.getId());
+            update.setUpdateTime(LocalDateTime.now());
+            seatMapper.updateById(update);
+        }
+
+        Map<String, Seat> seatsByGrid = new HashMap<>();
+        for (Seat seat : existingSeats) {
+            if (seat.getRowNo() <= request.getRows() && seat.getColNo() <= request.getCols()) {
+                seatsByGrid.put(gridKey(seat.getRowNo(), seat.getColNo()), seat);
+            } else {
+                seatMapper.deleteById(seat.getId());
+            }
+        }
+
+        int total = 0;
         for (int row = 1; row <= request.getRows(); row++) {
             for (int col = 1; col <= request.getCols(); col++) {
-                Long exists = seatMapper.selectCount(new LambdaQueryWrapper<Seat>()
-                        .eq(Seat::getRoomId, request.getRoomId())
-                        .eq(Seat::getRowNo, row)
-                        .eq(Seat::getColNo, col));
-                if (exists > 0) {
-                    continue;
+                Seat seat = seatsByGrid.get(gridKey(row, col));
+                boolean exists = seat != null;
+                if (!exists) {
+                    seat = new Seat();
+                    seat.setRoomId(request.getRoomId());
+                    seat.setCreateTime(LocalDateTime.now());
                 }
-                Seat seat = new Seat();
-                seat.setRoomId(request.getRoomId());
-                seat.setSeatNo((char) ('A' + row - 1) + String.format("%02d", col));
+                seat.setSeatNo(seatNo(row, col, request.getCols()));
                 seat.setRowNo(row);
                 seat.setColNo(col);
-                seat.setHasSocket(col == 1 || col == request.getCols());
-                seat.setNearWindow(row == 1);
+                seat.setHasSocket(hasSocket(col, request.getCols()));
+                seat.setNearWindow(nearWindow(row));
                 seat.setEnabled(true);
                 seat.setFaulty(false);
-                seat.setCreateTime(LocalDateTime.now());
-                seatMapper.insert(seat);
-                created++;
+                seat.setUpdateTime(LocalDateTime.now());
+                if (exists) {
+                    seatMapper.updateById(seat);
+                } else {
+                    seatMapper.insert(seat);
+                }
+                total++;
             }
         }
         refreshCapacity(request.getRoomId());
-        return Result.ok(created);
+        return Result.ok(total);
+    }
+
+    private String gridKey(Integer row, Integer col) {
+        return row + ":" + col;
+    }
+
+    private String seatNo(int row, int col, int cols) {
+        return "S" + String.format("%02d", (row - 1) * cols + col);
+    }
+
+    private boolean hasSocket(int col, int cols) {
+        return col == 1 || col == cols;
+    }
+
+    private boolean nearWindow(int row) {
+        return row == 1;
     }
 
     private Seat toEntity(SeatRequest request) {

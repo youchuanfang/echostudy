@@ -17,6 +17,7 @@ public class ViolationRecord {
     private Long reservationId;
     private String violationType;
     private String reason;
+    private Integer creditDeductPoints;
     private Integer violationCountSnapshot;
     private LocalDateTime banEndTimeSnapshot;
     private LocalDateTime createTime;

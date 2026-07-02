@@ -19,8 +19,9 @@ api.interceptors.response.use(
   (response) => {
     const body = response.data
     if (body && body.code !== 200) {
-      ElMessage.error(body.message || '请求失败')
-      return Promise.reject(new Error(body.message || '请求失败'))
+      const message = toUserMessage(body.message, '操作失败，请检查填写内容后重试')
+      ElMessage.error(message)
+      return Promise.reject(new Error(message))
     }
     return body.data
   },
@@ -31,9 +32,39 @@ api.interceptors.response.use(
       localStorage.removeItem('user')
       router.push('/login')
     }
-    ElMessage.error(error.response?.data?.message || error.message || '网络请求失败')
+    const fallback = status ? '操作失败，请稍后重试' : '网络请求失败，请检查网络后重试'
+    ElMessage.error(toUserMessage(error.response?.data?.message, fallback))
     return Promise.reject(error)
   }
 )
+
+function toUserMessage(message, fallback) {
+  if (!message || isTechnicalMessage(message)) {
+    return fallback
+  }
+  return message
+}
+
+function isTechnicalMessage(message) {
+  const value = String(message)
+  return [
+    '###',
+    'Exception',
+    'SQLException',
+    'SQLServerException',
+    'DataIntegrityViolation',
+    'DuplicateKey',
+    'com.',
+    'org.springframework',
+    'java.',
+    'ConstraintViolation',
+    'Violation of',
+    'INSERT INTO',
+    'UPDATE ',
+    'DELETE FROM',
+    'Cannot',
+    'undefined'
+  ].some((pattern) => value.includes(pattern))
+}
 
 export default api

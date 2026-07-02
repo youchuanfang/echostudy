@@ -11,6 +11,7 @@ export const statusMap = {
   VIOLATED: { text: '已违规', type: 'danger' },
   REJECTED: { text: '已驳回', type: 'danger' },
   EXPIRED: { text: '已过期', type: 'info' },
+  APPROVED: { text: '已通过', type: 'success' },
   ACCEPTED: { text: '已受理', type: 'blue' },
   PROCESSING: { text: '处理中', type: 'purple' },
   DONE: { text: '已完成', type: 'success' },
@@ -25,7 +26,7 @@ export const statusMap = {
   STUDY_ROOM: { text: '自习室', type: 'blue' },
   SEMINAR_ROOM: { text: '研讨室', type: 'purple' },
   CLASSROOM: { text: '空教室', type: 'success' },
-  LAB_SEAT: { text: '实验室工位', type: 'warning' },
+  LAB_SEAT: { text: '实验工位', type: 'warning' },
   PUBLIC_AREA: { text: '公共学习区', type: 'info' },
   SPACE: { text: '空间级报修', type: 'blue' },
   SEAT: { text: '座位/工位级报修', type: 'purple' },
@@ -46,8 +47,9 @@ export const statusMap = {
   RESERVATION: { text: '预约消息', type: 'blue' },
   APPROVAL: { text: '审批消息', type: 'warning' },
   VIOLATION: { text: '违规消息', type: 'danger' },
+  VIOLATION_APPEAL: { text: '违规申诉', type: 'purple' },
   BAN: { text: '封禁消息', type: 'danger' },
-  AI_TASK: { text: 'AI任务消息', type: 'purple' },
+  AI_TASK: { text: 'AI 任务消息', type: 'purple' },
   REPAIR: { text: '报修消息', type: 'warning' },
   ANNOUNCEMENT: { text: '公告消息', type: 'success' }
 }
@@ -109,7 +111,7 @@ export const spaceTypeMap = {
   STUDY_ROOM: '自习室',
   SEMINAR_ROOM: '研讨室',
   CLASSROOM: '空教室',
-  LAB_SEAT: '实验室工位',
+  LAB_SEAT: '实验工位',
   PUBLIC_AREA: '公共学习区'
 }
 
@@ -117,8 +119,9 @@ export const notificationTypeMap = {
   RESERVATION: '预约消息',
   APPROVAL: '审批消息',
   VIOLATION: '违规消息',
+  VIOLATION_APPEAL: '违规申诉',
   BAN: '封禁消息',
-  AI_TASK: 'AI任务消息',
+  AI_TASK: 'AI 任务消息',
   REPAIR: '报修消息',
   ANNOUNCEMENT: '公告消息',
   SYSTEM: '系统消息'
@@ -141,7 +144,24 @@ export const operationTypeMap = {
   处理报修: '处理报修',
   发布公告: '发布公告',
   停用公告: '停用公告',
-  修改系统规则: '修改系统规则'
+  修改系统规则: '修改系统规则',
+  调整信用分: '调整信用分',
+  处理违规申诉: '处理违规申诉',
+  调整用户状态: '调整用户状态',
+  解除封禁: '解除封禁'
+}
+
+export const violationTypeMap = {
+  FIRST_SIGN_TIMEOUT: '首次签到超时',
+  LEAVE_RETURN_TIMEOUT: '暂离未按时返座',
+  AI_FIRST_SIGN_TIMEOUT: 'AI 预约首次签到超时',
+  AI_LEAVE_RETURN_TIMEOUT: 'AI 预约暂离超时'
+}
+
+export const appealStatusMap = {
+  PENDING: '待处理',
+  APPROVED: '申诉通过',
+  REJECTED: '申诉驳回'
 }
 
 export function getStatusMeta(value) {
@@ -152,13 +172,10 @@ export function statusText(value) {
   return getStatusMeta(value).text
 }
 
-export const violationTypeMap = {
-  FIRST_SIGN_TIMEOUT: '首次签到超时',
-  LEAVE_RETURN_TIMEOUT: '暂离未按时返座',
-  AI_FIRST_SIGN_TIMEOUT: 'AI 预约首次签到超时',
-  AI_LEAVE_RETURN_TIMEOUT: 'AI 预约暂离超时'
-}
-
 export function violationTypeText(value) {
   return violationTypeMap[value] || value || '-'
+}
+
+export function appealStatusText(value) {
+  return appealStatusMap[value] || value || '-'
 }

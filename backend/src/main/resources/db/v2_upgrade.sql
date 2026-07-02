@@ -7,6 +7,13 @@ BEGIN TRANSACTION;
 IF COL_LENGTH('dbo.users', 'can_register_admin') IS NULL
     ALTER TABLE dbo.users ADD can_register_admin BIT NOT NULL CONSTRAINT df_users_can_register_admin DEFAULT 0;
 
+IF COL_LENGTH('dbo.users', 'credit_score') IS NULL
+    ALTER TABLE dbo.users ADD credit_score INT NOT NULL CONSTRAINT df_users_credit_score DEFAULT 100;
+
+UPDATE dbo.users
+SET credit_score = 100
+WHERE credit_score IS NULL;
+
 DECLARE @dropUsernameConstraintSql NVARCHAR(MAX) = N'';
 SELECT @dropUsernameConstraintSql = @dropUsernameConstraintSql +
     N'ALTER TABLE dbo.users DROP CONSTRAINT ' + QUOTENAME(kc.name) + N';'
@@ -110,6 +117,29 @@ IF COL_LENGTH('dbo.reservation', 'approve_time') IS NULL
 
 IF COL_LENGTH('dbo.reservation', 'reject_reason') IS NULL
     ALTER TABLE dbo.reservation ADD reject_reason NVARCHAR(500) NULL;
+
+IF COL_LENGTH('dbo.violation_record', 'credit_deduct_points') IS NULL
+    ALTER TABLE dbo.violation_record ADD credit_deduct_points INT NOT NULL CONSTRAINT df_violation_record_credit_deduct DEFAULT 0;
+
+IF OBJECT_ID('dbo.violation_appeal', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.violation_appeal (
+        id BIGINT IDENTITY(1,1) PRIMARY KEY,
+        violation_id BIGINT NOT NULL,
+        user_id BIGINT NOT NULL,
+        reason NVARCHAR(500) NOT NULL,
+        evidence NVARCHAR(1000) NULL,
+        status NVARCHAR(30) NOT NULL,
+        review_admin_id BIGINT NULL,
+        review_reply NVARCHAR(500) NULL,
+        review_time DATETIME2 NULL,
+        create_time DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        update_time DATETIME2 NULL,
+        CONSTRAINT fk_violation_appeal_violation FOREIGN KEY (violation_id) REFERENCES dbo.violation_record(id),
+        CONSTRAINT fk_violation_appeal_user FOREIGN KEY (user_id) REFERENCES dbo.users(id),
+        CONSTRAINT fk_violation_appeal_admin FOREIGN KEY (review_admin_id) REFERENCES dbo.users(id)
+    );
+END;
 
 IF OBJECT_ID('dbo.repair_record', 'U') IS NULL
 BEGIN
@@ -240,7 +270,15 @@ USING (VALUES
     ('default_location_radius_meter', '50', 'NUMBER', 'Default location radius in meters'),
     ('ai_task_enabled', 'true', 'BOOLEAN', 'Enable AI reservation task'),
     ('approval_enabled', 'true', 'BOOLEAN', 'Enable approval flow'),
-    ('repair_enabled', 'true', 'BOOLEAN', 'Enable repair flow')
+    ('repair_enabled', 'true', 'BOOLEAN', 'Enable repair flow'),
+    ('credit_initial_score', '100', 'NUMBER', 'Initial student credit score'),
+    ('credit_max_score', '100', 'NUMBER', 'Maximum student credit score'),
+    ('credit_min_score', '0', 'NUMBER', 'Minimum student credit score'),
+    ('credit_low_threshold', '60', 'NUMBER', 'Reservation block threshold for low credit'),
+    ('credit_first_sign_timeout_deduct', '10', 'NUMBER', 'Credit points deducted for missing first sign-in'),
+    ('credit_leave_return_timeout_deduct', '15', 'NUMBER', 'Credit points deducted for late return from leave'),
+    ('low_credit_reservation_block_enabled', 'true', 'BOOLEAN', 'Block reservation when credit is lower than threshold'),
+    ('violation_appeal_enabled', 'true', 'BOOLEAN', 'Enable violation appeal workflow')
 ) AS source (config_key, config_value, value_type, description)
 ON target.config_key = source.config_key
 WHEN NOT MATCHED THEN
@@ -261,6 +299,9 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_leave_record_reservat
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_operation_log_time' AND object_id = OBJECT_ID('dbo.operation_log'))
     CREATE INDEX idx_operation_log_time ON dbo.operation_log(admin_id, operation_type, create_time);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_violation_appeal_status' AND object_id = OBJECT_ID('dbo.violation_appeal'))
+    CREATE INDEX idx_violation_appeal_status ON dbo.violation_appeal(status, create_time);
 
 COMMIT TRANSACTION;
 GO

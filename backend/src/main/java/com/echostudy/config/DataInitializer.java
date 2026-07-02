@@ -60,6 +60,7 @@ public class DataInitializer implements CommandLineRunner {
         user.setRole(role);
         user.setStatus(UserStatus.NORMAL.name());
         user.setViolationCount(0);
+        user.setCreditScore(100);
         user.setCanRegisterAdmin(UserRole.ADMIN.name().equals(role));
         user.setCreateTime(LocalDateTime.now());
         userMapper.insert(user);

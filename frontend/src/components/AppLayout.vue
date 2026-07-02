@@ -41,7 +41,7 @@
       <section class="es-content">
         <slot />
       </section>
-      <footer class="es-footer">© 2026 EchoStudy 校园智慧空间资源预约与运营管理系统</footer>
+      <footer class="es-footer">© 2026 EchoStudy 校园学习空间运营与信用治理平台</footer>
     </main>
   </div>
 </template>
@@ -98,24 +98,24 @@ const studentMenus = [
   { path: '/student/repairs', label: '资源报修', icon: Service },
   { path: '/student/notifications', label: '我的消息', icon: List },
   { path: '/student/statistics', label: '学习统计', icon: DataAnalysis },
-  { path: '/student/violations', label: '违规记录', icon: Warning }
+  { path: '/student/violations', label: '信用与违规', icon: Warning }
 ]
 
 const adminMenus = [
   { path: '/admin', label: '后台首页', icon: DataAnalysis },
-  { path: '/admin/users', label: '用户管理', icon: User },
+  { path: '/admin/users', label: '用户与信用', icon: User },
   { path: '/admin/register-admin', label: '注册新管理员', icon: User },
-  { path: '/admin/rooms', label: '空间资源管理', icon: OfficeBuilding },
-  { path: '/admin/seats', label: '座位/工位管理', icon: Grid },
-  { path: '/admin/time-nodes', label: '时间节点管理', icon: Clock },
-  { path: '/admin/approvals', label: '预约审批管理', icon: Tickets },
+  { path: '/admin/rooms', label: '空间资源', icon: OfficeBuilding },
+  { path: '/admin/seats', label: '座位/工位', icon: Grid },
+  { path: '/admin/time-nodes', label: '时间节点', icon: Clock },
+  { path: '/admin/approvals', label: '预约审批', icon: Tickets },
   { path: '/admin/offline', label: '线下代预约', icon: Service },
-  { path: '/admin/reservations', label: '预约记录管理', icon: List },
+  { path: '/admin/reservations', label: '预约记录', icon: List },
   { path: '/admin/repairs', label: '报修管理', icon: Service },
   { path: '/admin/announcements', label: '公告管理', icon: List },
   { path: '/admin/notifications', label: '消息管理', icon: List },
-  { path: '/admin/violations', label: '违规记录管理', icon: WarningFilled },
-  { path: '/admin/ai', label: 'AI 任务管理', icon: Cpu },
+  { path: '/admin/violations', label: '信用治理', icon: WarningFilled },
+  { path: '/admin/ai', label: 'AI 任务', icon: Cpu },
   { path: '/admin/configs', label: '规则配置', icon: Service },
   { path: '/admin/operation-logs', label: '操作日志', icon: List },
   { path: '/admin/statistics', label: '统计分析', icon: DataAnalysis }

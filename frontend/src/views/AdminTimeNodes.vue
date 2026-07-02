@@ -4,7 +4,6 @@
     <AppCard title="时间节点表单">
       <div class="form-grid">
         <el-form-item label="时间"><el-time-picker v-model="form.timeValue" value-format="HH:mm:ss" /></el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="form.sortOrder" /></el-form-item>
         <el-form-item label="状态"><el-checkbox v-model="form.enabled">启用</el-checkbox></el-form-item>
         <div class="form-action"><el-button type="primary" @click="save">保存</el-button></div>
       </div>
@@ -27,10 +26,10 @@ import AppCard from '../components/AppCard.vue'
 import PageHeader from '../components/PageHeader.vue'
 
 const rows = ref([])
-const form = reactive({ id: null, timeValue: '08:00:00', enabled: true, sortOrder: 1 })
-async function load() { rows.value = await api.get('/admin/time-nodes') }
+const form = reactive({ id: null, timeValue: '08:00:00', enabled: true })
+async function load() { rows.value = (await api.get('/admin/time-nodes')).sort((a, b) => String(a.timeValue).localeCompare(String(b.timeValue))) }
 function edit(row) { Object.assign(form, row) }
-async function save() { form.id ? await api.put(`/admin/time-nodes/${form.id}`, form) : await api.post('/admin/time-nodes', form); Object.assign(form, { id: null, timeValue: '08:00:00', enabled: true, sortOrder: 1 }); await load() }
+async function save() { form.id ? await api.put(`/admin/time-nodes/${form.id}`, form) : await api.post('/admin/time-nodes', form); Object.assign(form, { id: null, timeValue: '08:00:00', enabled: true }); await load() }
 async function remove(id) { await api.delete(`/admin/time-nodes/${id}`); await load() }
 onMounted(load)
 </script>

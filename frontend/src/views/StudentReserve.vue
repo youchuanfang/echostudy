@@ -29,15 +29,16 @@
       <div class="form-grid">
         <el-form-item label="空间类型">
           <el-select v-model="filters.spaceType" clearable placeholder="全部类型">
+            <el-option label="全部" value="" />
             <el-option v-for="type in spaceTypes" :key="type" :label="spaceTypeMap[type]" :value="type" />
           </el-select>
         </el-form-item>
-        <el-form-item label="目标日期"><el-date-picker v-model="form.reserveDate" type="date" value-format="YYYY-MM-DD" /></el-form-item>
+        <el-form-item label="目标日期"><el-date-picker v-model="form.reserveDate" type="date" value-format="YYYY-MM-DD" :disabled-date="disabledReserveDate" /></el-form-item>
         <el-form-item label="开始时间">
-          <el-select v-model="form.startTime"><el-option v-for="n in nodes" :key="n.id" :label="timeText(n.timeValue)" :value="n.timeValue" /></el-select>
+          <el-select v-model="form.startTime"><el-option v-for="n in nodes" :key="n.id" :label="timeText(n.timeValue)" :value="n.timeValue" :disabled="isStartTimeDisabled(n.timeValue)" /></el-select>
         </el-form-item>
         <el-form-item label="结束时间">
-          <el-select v-model="form.endTime"><el-option v-for="n in nodes" :key="n.id" :label="timeText(n.timeValue)" :value="n.timeValue" /></el-select>
+          <el-select v-model="form.endTime"><el-option v-for="n in nodes" :key="n.id" :label="timeText(n.timeValue)" :value="n.timeValue" :disabled="isEndTimeDisabled(n.timeValue)" /></el-select>
         </el-form-item>
         <el-form-item label="只看开放空间"><el-switch v-model="filters.openOnly" /></el-form-item>
         <div class="form-action"><el-button type="primary" @click="loadSpaces">搜索</el-button></div>
@@ -118,7 +119,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '../api'
@@ -138,6 +139,8 @@ const nodes = ref([])
 const layout = ref({})
 const selectedSeat = ref(null)
 const approvalDialog = ref(false)
+const nowMinutes = ref(minutesSinceMidnight(new Date()))
+let nowTimer = null
 const filters = reactive({ building: 'ALL', spaceType: '', openOnly: true })
 const form = reactive({
   reserveDate: new Date().toISOString().slice(0, 10),
@@ -156,6 +159,91 @@ const filteredSpaces = computed(() => spaces.value.filter((space) => {
 
 function timeText(value) {
   return String(value || '').slice(0, 5)
+}
+
+function dateText(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function minutesSinceMidnight(date) {
+  return date.getHours() * 60 + date.getMinutes()
+}
+
+function timeToMinutes(value) {
+  const [hour = 0, minute = 0] = String(value || '').split(':').map(Number)
+  return hour * 60 + minute
+}
+
+function isToday(dateValue) {
+  return dateValue === dateText(new Date())
+}
+
+function disabledReserveDate(date) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return date.getTime() < today.getTime()
+}
+
+function refreshNow() {
+  nowMinutes.value = minutesSinceMidnight(new Date())
+}
+
+function isStartTimeDisabled(value) {
+  return isToday(form.reserveDate) && timeToMinutes(value) < nowMinutes.value
+}
+
+function isEndTimeDisabled(value) {
+  if (!form.startTime) {
+    return false
+  }
+  return timeToMinutes(value) <= timeToMinutes(form.startTime)
+}
+
+function firstEnabledStartTime() {
+  return nodes.value.find((node) => !isStartTimeDisabled(node.timeValue))?.timeValue || ''
+}
+
+function firstEnabledEndTime() {
+  return nodes.value.find((node) => !isEndTimeDisabled(node.timeValue))?.timeValue || ''
+}
+
+function ensureTimeSelection() {
+  if (form.startTime && isStartTimeDisabled(form.startTime)) {
+    form.startTime = firstEnabledStartTime()
+  }
+  if (!form.startTime && nodes.value.length) {
+    form.startTime = firstEnabledStartTime()
+  }
+  if (form.endTime && isEndTimeDisabled(form.endTime)) {
+    form.endTime = firstEnabledEndTime()
+  }
+  if (!form.endTime && nodes.value.length) {
+    form.endTime = firstEnabledEndTime()
+  }
+}
+
+function validateTimeSelection() {
+  refreshNow()
+  if (!form.reserveDate || !form.startTime || !form.endTime) {
+    ElMessage.warning('请选择完整的预约日期和时间')
+    return false
+  }
+  if (form.reserveDate < dateText(new Date())) {
+    ElMessage.warning('不能预约过去日期')
+    return false
+  }
+  if (isStartTimeDisabled(form.startTime)) {
+    ElMessage.warning('开始时间不能早于当前时间')
+    return false
+  }
+  if (isEndTimeDisabled(form.endTime)) {
+    ElMessage.warning('结束时间必须晚于开始时间')
+    return false
+  }
+  return true
 }
 
 function isSeatBased(space) {
@@ -184,6 +272,7 @@ async function selectBuilding(building) {
 
 async function loadNodes() {
   nodes.value = await api.get('/student/time-nodes')
+  ensureTimeSelection()
 }
 
 async function toggleSpace(space) {
@@ -213,6 +302,9 @@ function collapseSpace() {
 }
 
 async function loadLayout() {
+  if (!validateTimeSelection()) {
+    return
+  }
   if (!form.roomId) {
     ElMessage.warning('请先选择空间')
     return
@@ -232,6 +324,9 @@ async function loadLayout() {
 }
 
 async function reserveRoom() {
+  if (!validateTimeSelection()) {
+    return
+  }
   selectedSeat.value = null
   if (selectedSpace.value?.needApproval) {
     approvalForm.purpose = ''
@@ -245,6 +340,9 @@ async function reserveRoom() {
 }
 
 async function reserve(seat) {
+  if (!validateTimeSelection()) {
+    return
+  }
   selectedSeat.value = seat
   if (selectedSpace.value?.needApproval) {
     approvalForm.purpose = ''
@@ -258,6 +356,9 @@ async function reserve(seat) {
 }
 
 async function submitReservation() {
+  if (!validateTimeSelection()) {
+    return
+  }
   const payload = {
     ...form
   }
@@ -281,12 +382,31 @@ async function submitReservation() {
 }
 
 onMounted(async () => {
+  refreshNow()
+  nowTimer = window.setInterval(() => {
+    refreshNow()
+    ensureTimeSelection()
+  }, 30000)
   await Promise.all([loadBuildings(), loadSpaces(), loadNodes()])
   const savedSpaceId = Number(sessionStorage.getItem(expandedSpaceStorageKey))
   const savedSpace = filteredSpaces.value.find((space) => space.id === savedSpaceId)
   if (savedSpace) {
     await selectSpace(savedSpace)
   }
+})
+
+onBeforeUnmount(() => {
+  if (nowTimer) {
+    window.clearInterval(nowTimer)
+  }
+})
+
+watch([() => form.reserveDate, () => nodes.value, nowMinutes], () => {
+  ensureTimeSelection()
+})
+
+watch(() => form.startTime, () => {
+  ensureTimeSelection()
 })
 </script>
 

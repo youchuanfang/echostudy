@@ -71,7 +71,8 @@ public class AdminDashboardController {
     }
 
     private List<Map<String, Object>> roomRates(List<Reservation> todayReservations) {
-        return studyRoomMapper.selectList(null).stream().map(room -> {
+        return studyRoomMapper.selectList(new LambdaQueryWrapper<StudyRoom>()
+                .eq(StudyRoom::getOpenStatus, true)).stream().map(room -> {
             long active = todayReservations.stream()
                     .filter(r -> r.getRoomId().equals(room.getId()))
                     .filter(r -> List.of(ReservationStatus.RESERVED.name(), ReservationStatus.USING.name(), ReservationStatus.LEAVE.name())

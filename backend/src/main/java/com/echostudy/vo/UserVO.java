@@ -16,6 +16,7 @@ public class UserVO {
     private String role;
     private String status;
     private Integer violationCount;
+    private Integer creditScore;
     private LocalDateTime banEndTime;
     private Boolean canRegisterAdmin;
 
@@ -29,6 +30,7 @@ public class UserVO {
         vo.setRole(user.getRole());
         vo.setStatus(user.getStatus());
         vo.setViolationCount(user.getViolationCount());
+        vo.setCreditScore(user.getCreditScore());
         vo.setBanEndTime(user.getBanEndTime());
         vo.setCanRegisterAdmin(user.getCanRegisterAdmin());
         return vo;

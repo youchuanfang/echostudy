@@ -7,4 +7,6 @@ public class SeatStatusRequest {
 
     private Boolean enabled;
     private Boolean faulty;
+    private Boolean hasSocket;
+    private Boolean nearWindow;
 }

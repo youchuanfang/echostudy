@@ -6,6 +6,7 @@
       <div class="form-grid">
         <el-form-item label="空间类型">
           <el-select v-model="filters.spaceType" clearable placeholder="全部类型">
+            <el-option label="全部" value="" />
             <el-option v-for="type in spaceTypes" :key="type" :label="spaceTypeMap[type]" :value="type" />
           </el-select>
         </el-form-item>

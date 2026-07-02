@@ -10,6 +10,9 @@
         </el-form-item>
         <el-form-item label="行数"><el-input-number v-model="batch.rows" :min="1" :max="20" /></el-form-item>
         <el-form-item label="列数"><el-input-number v-model="batch.cols" :min="1" :max="20" /></el-form-item>
+        <el-form-item label="编辑模式">
+          <el-segmented v-model="editMode" :options="editModeOptions" />
+        </el-form-item>
         <div class="form-action"><el-button type="primary" :disabled="!roomId" @click="batchGenerate">批量生成</el-button></div>
       </div>
     </AppCard>
@@ -39,9 +42,20 @@ import SeatLegend from '../components/SeatLegend.vue'
 const rooms = ref([])
 const seats = ref([])
 const roomId = ref(null)
+const editMode = ref('enabled')
 const batch = reactive({ rows: 4, cols: 6 })
 const seatBasedTypes = ['STUDY_ROOM', 'PUBLIC_AREA', 'LAB_SEAT']
-const seatRooms = computed(() => rooms.value.filter((room) => seatBasedTypes.includes(room.spaceType)))
+const retiredDefaultRoomNames = ['明德楼一楼自习室', '图书馆二楼阅览区']
+const editModeOptions = [
+  { label: '可用', value: 'enabled' },
+  { label: '插座', value: 'socket' },
+  { label: '靠窗', value: 'window' }
+]
+const seatRooms = computed(() => rooms.value.filter((room) => (
+  seatBasedTypes.includes(room.spaceType)
+  && room.openStatus !== false
+  && !retiredDefaultRoomNames.includes(room.name)
+)))
 const maxCol = computed(() => Math.max(...seats.value.map((s) => s.colNo), 1))
 
 async function loadRooms() {
@@ -51,6 +65,22 @@ async function loadRooms() {
 }
 async function load() { seats.value = roomId.value ? await api.get('/admin/seats', { params: { roomId: roomId.value } }) : [] }
 async function batchGenerate() { if (!roomId.value) return; await api.post('/admin/seats/batch-generate', { roomId: roomId.value, ...batch }); await load() }
-async function toggle(seat) { await api.put(`/admin/seats/${seat.id}/status`, { enabled: !seat.enabled, faulty: seat.faulty }); await load() }
+async function toggle(seat) {
+  const payload = {
+    enabled: seat.enabled,
+    faulty: seat.faulty,
+    hasSocket: seat.hasSocket,
+    nearWindow: seat.nearWindow
+  }
+  if (editMode.value === 'socket') {
+    payload.hasSocket = !seat.hasSocket
+  } else if (editMode.value === 'window') {
+    payload.nearWindow = !seat.nearWindow
+  } else {
+    payload.enabled = !seat.enabled
+  }
+  await api.put(`/admin/seats/${seat.id}/status`, payload)
+  await load()
+}
 onMounted(loadRooms)
 </script>

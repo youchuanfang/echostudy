@@ -1,4 +1,5 @@
 IF OBJECT_ID('dbo.ai_reservation_task', 'U') IS NOT NULL DROP TABLE dbo.ai_reservation_task;
+IF OBJECT_ID('dbo.violation_appeal', 'U') IS NOT NULL DROP TABLE dbo.violation_appeal;
 IF OBJECT_ID('dbo.violation_record', 'U') IS NOT NULL DROP TABLE dbo.violation_record;
 IF OBJECT_ID('dbo.reservation', 'U') IS NOT NULL DROP TABLE dbo.reservation;
 IF OBJECT_ID('dbo.time_node', 'U') IS NOT NULL DROP TABLE dbo.time_node;
@@ -17,6 +18,7 @@ CREATE TABLE dbo.users (
     role NVARCHAR(20) NOT NULL,
     status NVARCHAR(20) NOT NULL,
     violation_count INT NOT NULL DEFAULT 0,
+    credit_score INT NOT NULL DEFAULT 100,
     ban_end_time DATETIME2 NULL,
     can_register_admin BIT NOT NULL DEFAULT 0,
     create_time DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
@@ -104,11 +106,29 @@ CREATE TABLE dbo.violation_record (
     reservation_id BIGINT NULL,
     violation_type NVARCHAR(50) NOT NULL,
     reason NVARCHAR(500) NOT NULL,
+    credit_deduct_points INT NOT NULL DEFAULT 0,
     violation_count_snapshot INT NOT NULL,
     ban_end_time_snapshot DATETIME2 NULL,
     create_time DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     CONSTRAINT fk_violation_user FOREIGN KEY (user_id) REFERENCES dbo.users(id),
     CONSTRAINT fk_violation_reservation FOREIGN KEY (reservation_id) REFERENCES dbo.reservation(id)
+);
+
+CREATE TABLE dbo.violation_appeal (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    violation_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    reason NVARCHAR(500) NOT NULL,
+    evidence NVARCHAR(1000) NULL,
+    status NVARCHAR(30) NOT NULL,
+    review_admin_id BIGINT NULL,
+    review_reply NVARCHAR(500) NULL,
+    review_time DATETIME2 NULL,
+    create_time DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    update_time DATETIME2 NULL,
+    CONSTRAINT fk_violation_appeal_violation FOREIGN KEY (violation_id) REFERENCES dbo.violation_record(id),
+    CONSTRAINT fk_violation_appeal_user FOREIGN KEY (user_id) REFERENCES dbo.users(id),
+    CONSTRAINT fk_violation_appeal_admin FOREIGN KEY (review_admin_id) REFERENCES dbo.users(id)
 );
 
 CREATE TABLE dbo.ai_reservation_task (
@@ -134,6 +154,7 @@ CREATE TABLE dbo.ai_reservation_task (
 
 CREATE INDEX idx_reservation_seat_time ON dbo.reservation(seat_id, reserve_date, start_time, end_time, status);
 CREATE INDEX idx_reservation_user_time ON dbo.reservation(user_id, reserve_date, start_time, end_time, status);
+CREATE INDEX idx_violation_appeal_status ON dbo.violation_appeal(status, create_time);
 GO
 
 INSERT INTO dbo.users (username, password, real_name, student_no, phone, role, status, can_register_admin)
