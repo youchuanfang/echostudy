@@ -294,6 +294,12 @@ WHEN NOT MATCHED THEN
     INSERT (config_key, config_value, value_type, description)
     VALUES (source.config_key, source.config_value, source.value_type, source.description);
 
+EXEC sp_executesql N'
+UPDATE dbo.system_config
+SET config_value = ''240''
+WHERE config_key = ''online_max_duration_minutes''
+  AND TRY_CONVERT(INT, config_value) > 1440;';
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_repair_record_user_status' AND object_id = OBJECT_ID('dbo.repair_record'))
     CREATE INDEX idx_repair_record_user_status ON dbo.repair_record(user_id, status, create_time);
 

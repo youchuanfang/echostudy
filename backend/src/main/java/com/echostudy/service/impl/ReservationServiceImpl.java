@@ -263,6 +263,13 @@ public class ReservationServiceImpl implements ReservationService {
         }
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startAt = LocalDateTime.of(reservation.getReserveDate(), reservation.getStartTime());
+        int signWindowMinutes = configService.getInt("first_sign_deadline_minutes", properties.getFirstSignDeadlineMinutes());
+        if (now.isBefore(startAt.minusMinutes(signWindowMinutes)) || now.isAfter(startAt.plusMinutes(signWindowMinutes))) {
+            throw new BusinessException("当前不在签到时间范围内，请在预约开始前后 " + signWindowMinutes + " 分钟内签到");
+        }
+        if (now.isBefore(startAt)) {
+            startAt = now;
+        }
         if (now.isBefore(startAt) || now.isAfter(startAt.plusMinutes(configService.getInt("first_sign_deadline_minutes", properties.getFirstSignDeadlineMinutes())))) {
             throw new BusinessException("当前不在签到时间范围内");
         }
@@ -395,6 +402,9 @@ public class ReservationServiceImpl implements ReservationService {
         if (requireTimeNode) {
             requireEnabledTimeNode(startTime);
             requireEnabledTimeNode(endTime);
+            if (isOnlineDurationExceeded(startTime, endTime)) {
+                throw new BusinessException("超过线上最大预约时长");
+            }
             if (configService.getBoolean("online_max_duration_enabled", properties.isOnlineMaxDurationEnabled())
                     && Duration.between(startTime, endTime).toMinutes() > configService.getInt("online_max_duration_minutes", properties.getOnlineMaxDurationMinutes())) {
                 throw new BusinessException("超过线上最大预约时长");
@@ -455,6 +465,11 @@ public class ReservationServiceImpl implements ReservationService {
 
     private boolean isCurrentTimeLimitedSource(String source) {
         return ReservationSource.ONLINE.name().equals(source) || ReservationSource.AI.name().equals(source);
+    }
+
+    private boolean isOnlineDurationExceeded(LocalTime startTime, LocalTime endTime) {
+        return configService.getBoolean("online_max_duration_enabled", properties.isOnlineMaxDurationEnabled())
+                && Duration.between(startTime, endTime).toMinutes() > configService.getInt("online_max_duration_minutes", properties.getOnlineMaxDurationMinutes());
     }
 
     private void ensureCreditAllowsReservation(User user) {

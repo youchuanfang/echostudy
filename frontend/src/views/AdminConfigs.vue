@@ -90,7 +90,7 @@ const configMeta = {
   ban_days: { name: '封禁天数', description: '学生被封禁后持续多少天', unit: '天' },
   ban_threshold: { name: '封禁违规次数', description: '学生累计达到多少次违规后触发封禁', unit: '次' },
   default_location_radius_meter: { name: '默认签到范围', description: '新建空间默认允许签到的定位半径', unit: '米' },
-  first_sign_deadline_minutes: { name: '首次签到期限', description: '预约开始后，学生需要在多少分钟内完成首次签到', unit: '分钟' },
+  first_sign_deadline_minutes: { name: '签到时间窗口', description: '学生可在预约开始时间前后多少分钟内签到；超出开始后窗口会生成未签到违规', unit: '分钟' },
   grace_minutes: { name: '超时宽限时间', description: '系统处理超时释放或结束前保留的宽限分钟数', unit: '分钟' },
   leave_max_minutes: { name: '暂离最长时间', description: '学生单次暂离座位允许的最长分钟数', unit: '分钟' },
   location_check_enabled: { name: '定位签到校验', description: '签到时是否校验学生当前位置在空间允许范围内' },
