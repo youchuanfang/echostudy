@@ -25,6 +25,11 @@ Thumbs.db
 # Codex local attachments / process files
 .codex-remote-attachments/
 
+# Generated course-doc artifacts
+docs/build_*_doc.py
+docs/_*_render/
+docs/*.docx
+
 # Env
 .env
 .env.*

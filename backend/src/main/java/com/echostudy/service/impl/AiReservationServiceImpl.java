@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -55,8 +56,18 @@ public class AiReservationServiceImpl implements AiReservationService {
         if (request.getTargetDate().equals(today) && request.getStartTime().isBefore(LocalDateTime.now().toLocalTime().withSecond(0).withNano(0))) {
             throw new BusinessException("开始时间不能早于当前时间");
         }
+        if (isDurationExceeded(request)) {
+            throw new BusinessException("AI 预约时长不能超过线上一次预约最长时长");
+        }
+        Long userId = UserContext.getUserId();
+        if (reservationService.hasUserConflict(userId, request.getTargetDate(), request.getStartTime(), request.getEndTime())) {
+            throw new BusinessException("该时间段已有预约或待审批申请，请更换时间段");
+        }
+        if (hasPendingTaskConflict(userId, request)) {
+            throw new BusinessException("该时间段已有待执行的 AI 预约任务，请勿重复提交");
+        }
         AiReservationTask task = new AiReservationTask();
-        task.setUserId(UserContext.getUserId());
+        task.setUserId(userId);
         task.setTargetDate(request.getTargetDate());
         task.setStartTime(request.getStartTime());
         task.setEndTime(request.getEndTime());
@@ -68,6 +79,21 @@ public class AiReservationServiceImpl implements AiReservationService {
         task.setCreateTime(LocalDateTime.now());
         aiReservationTaskMapper.insert(task);
         return task;
+    }
+
+    private boolean isDurationExceeded(AiTaskRequest request) {
+        return configService.getBoolean("online_max_duration_enabled", true)
+                && Duration.between(request.getStartTime(), request.getEndTime()).toMinutes()
+                > configService.getInt("online_max_duration_minutes", 240);
+    }
+
+    private boolean hasPendingTaskConflict(Long userId, AiTaskRequest request) {
+        return aiReservationTaskMapper.selectCount(new LambdaQueryWrapper<AiReservationTask>()
+                .eq(AiReservationTask::getUserId, userId)
+                .eq(AiReservationTask::getTargetDate, request.getTargetDate())
+                .eq(AiReservationTask::getStatus, AiTaskStatus.PENDING.name())
+                .lt(AiReservationTask::getStartTime, request.getEndTime())
+                .gt(AiReservationTask::getEndTime, request.getStartTime())) > 0;
     }
 
     @Override

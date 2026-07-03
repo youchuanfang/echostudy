@@ -55,6 +55,12 @@ public class ReservationServiceImpl implements ReservationService {
             ReservationStatus.USING.name(),
             ReservationStatus.LEAVE.name()
     );
+    private static final List<String> USER_CONFLICT_STATUS = List.of(
+            ReservationStatus.PENDING_APPROVAL.name(),
+            ReservationStatus.RESERVED.name(),
+            ReservationStatus.USING.name(),
+            ReservationStatus.LEAVE.name()
+    );
     private static final Set<String> SEAT_BASED_SPACE_TYPES = Set.of("STUDY_ROOM", "PUBLIC_AREA", "LAB_SEAT");
     private static final DateTimeFormatter SQL_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
@@ -195,7 +201,8 @@ public class ReservationServiceImpl implements ReservationService {
             throw new BusinessException("只有待审批预约可以审批通过");
         }
         if (hasResourceConflict(reservation)
-                || hasUserConflict(reservation.getUserId(), reservation.getReserveDate(), reservation.getStartTime(), reservation.getEndTime())) {
+                || hasUserConflictExcept(reservation.getUserId(), reservation.getReserveDate(),
+                reservation.getStartTime(), reservation.getEndTime(), reservation.getId())) {
             throw new BusinessException("当前时间段资源已被占用");
         }
         LocalDateTime now = LocalDateTime.now();
@@ -399,6 +406,9 @@ public class ReservationServiceImpl implements ReservationService {
         if (!seatBasedSpace) {
             seatId = null;
         }
+        if (isCurrentTimeLimitedSource(source) && isOnlineDurationExceeded(startTime, endTime)) {
+            throw new BusinessException("超过线上最大预约时长");
+        }
         if (requireTimeNode) {
             requireEnabledTimeNode(startTime);
             requireEnabledTimeNode(endTime);
@@ -437,7 +447,16 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Override
     public boolean hasUserConflict(Long userId, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        return reservationMapper.selectCount(baseConflictQuery(date, startTime, endTime).eq(Reservation::getUserId, userId)) > 0;
+        return hasUserConflictExcept(userId, date, startTime, endTime, null);
+    }
+
+    private boolean hasUserConflictExcept(Long userId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeReservationId) {
+        LambdaQueryWrapper<Reservation> query = baseUserConflictQuery(date, startTime, endTime)
+                .eq(Reservation::getUserId, userId);
+        if (excludeReservationId != null) {
+            query.ne(Reservation::getId, excludeReservationId);
+        }
+        return reservationMapper.selectCount(query) > 0;
     }
 
     @Override
@@ -487,6 +506,14 @@ public class ReservationServiceImpl implements ReservationService {
         return new LambdaQueryWrapper<Reservation>()
                 .eq(Reservation::getReserveDate, date)
                 .in(Reservation::getStatus, ACTIVE_STATUS)
+                .apply("start_time < CAST({0} AS time)", sqlTime(endTime))
+                .apply("end_time > CAST({0} AS time)", sqlTime(startTime));
+    }
+
+    private LambdaQueryWrapper<Reservation> baseUserConflictQuery(LocalDate date, LocalTime startTime, LocalTime endTime) {
+        return new LambdaQueryWrapper<Reservation>()
+                .eq(Reservation::getReserveDate, date)
+                .in(Reservation::getStatus, USER_CONFLICT_STATUS)
                 .apply("start_time < CAST({0} AS time)", sqlTime(endTime))
                 .apply("end_time > CAST({0} AS time)", sqlTime(startTime));
     }
