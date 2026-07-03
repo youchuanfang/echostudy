@@ -23,7 +23,7 @@ api.interceptors.response.use(
       ElMessage.error(message)
       return Promise.reject(new Error(message))
     }
-    return body.data
+    return normalizeDateTime(body.data)
   },
   (error) => {
     const status = error.response?.status
@@ -37,6 +37,34 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+function normalizeDateTime(value) {
+  if (Array.isArray(value)) {
+    return value.map(normalizeDateTime)
+  }
+  if (value && typeof value === 'object') {
+    Object.keys(value).forEach((key) => {
+      value[key] = normalizeDateTime(value[key])
+    })
+    return value
+  }
+  if (typeof value === 'string') {
+    return formatDateTimeString(value)
+  }
+  return value
+}
+
+function formatDateTimeString(value) {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/)
+  if (match) {
+    return `${match[1]} ${match[2]}`
+  }
+  const timeMatch = value.match(/^(\d{2}:\d{2}:\d{2})(?:\.\d+)?$/)
+  if (timeMatch) {
+    return timeMatch[1]
+  }
+  return value
+}
 
 function toUserMessage(message, fallback) {
   if (!message || isTechnicalMessage(message)) {

@@ -29,7 +29,11 @@
           <span>{{ config.title }}</span>
         </div>
         <div class="es-topbar-actions">
-          <el-icon size="20"><Bell /></el-icon>
+          <button class="notification-button" type="button" title="查看消息" @click="openNotifications">
+            <el-badge :value="unreadCount" :hidden="unreadCount <= 0" :max="99">
+              <el-icon size="20"><Bell /></el-icon>
+            </el-badge>
+          </button>
           <div class="es-user-badge">
             <span class="es-avatar">{{ avatarText }}</span>
             <span>{{ user?.realName || user?.username }}</span>
@@ -47,7 +51,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Bell,
@@ -67,6 +71,7 @@ import {
   Warning,
   WarningFilled
 } from '@element-plus/icons-vue'
+import api from '../api'
 import { getPageConfig } from '../config/themeConfig'
 
 const route = useRoute()
@@ -74,6 +79,8 @@ const router = useRouter()
 const user = computed(() => JSON.parse(localStorage.getItem('user') || 'null'))
 const config = computed(() => getPageConfig(route.meta.pageKey))
 const avatarText = computed(() => (user.value?.realName || user.value?.username || 'E').slice(0, 1))
+const unreadCount = ref(0)
+let unreadTimer = null
 
 const currentRole = computed(() => {
   const role = user.value?.role || localStorage.getItem('role') || ''
@@ -121,9 +128,65 @@ const adminMenus = [
   { path: '/admin/statistics', label: '统计分析', icon: DataAnalysis }
 ]
 
+async function loadUnreadCount() {
+  if (!user.value) {
+    unreadCount.value = 0
+    return
+  }
+  if (currentRole.value === 'ADMIN') {
+    const rows = await api.get('/admin/notifications', { params: { readStatus: false } })
+    unreadCount.value = Array.isArray(rows) ? rows.length : 0
+    return
+  }
+  unreadCount.value = await api.get('/student/notifications/unread-count')
+}
+
+function openNotifications() {
+  router.push(currentRole.value === 'ADMIN' ? '/admin/notifications' : '/student/notifications')
+}
+
 function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
+  unreadCount.value = 0
   router.push('/login')
 }
+
+onMounted(() => {
+  loadUnreadCount().catch(() => {})
+  unreadTimer = window.setInterval(() => {
+    loadUnreadCount().catch(() => {})
+  }, 30000)
+})
+
+onUnmounted(() => {
+  if (unreadTimer) {
+    window.clearInterval(unreadTimer)
+  }
+})
+
+watch(() => route.fullPath, () => {
+  loadUnreadCount().catch(() => {})
+})
 </script>
+
+<style scoped>
+.notification-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--es-text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.notification-button:hover {
+  color: var(--es-primary);
+  background: #eef8f6;
+}
+</style>

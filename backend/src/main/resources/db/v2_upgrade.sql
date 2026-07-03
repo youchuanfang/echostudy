@@ -122,6 +122,14 @@ IF COL_LENGTH('dbo.reservation', 'reject_reason') IS NULL
 IF COL_LENGTH('dbo.violation_record', 'credit_deduct_points') IS NULL
     ALTER TABLE dbo.violation_record ADD credit_deduct_points INT NOT NULL CONSTRAINT df_violation_record_credit_deduct DEFAULT 0;
 
+EXEC sp_executesql N'
+UPDATE dbo.violation_record
+SET credit_deduct_points = CASE
+    WHEN violation_type IN (''LEAVE_RETURN_TIMEOUT'', ''AI_LEAVE_RETURN_TIMEOUT'') THEN 15
+    ELSE 10
+END
+WHERE credit_deduct_points IS NULL OR credit_deduct_points = 0;';
+
 IF OBJECT_ID('dbo.violation_appeal', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.violation_appeal (

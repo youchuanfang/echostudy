@@ -56,9 +56,15 @@
         <el-form-item label="说明">
           <el-input :model-value="ruleMeta(current.configKey).description" disabled />
         </el-form-item>
-        <el-form-item label="设置值">
+        <el-form-item :label="`设置值${ruleMeta(current.configKey).unit ? '（' + ruleMeta(current.configKey).unit + '）' : ''}`">
           <el-switch v-if="current.valueType === 'BOOLEAN'" v-model="boolValue" active-text="启用" inactive-text="关闭" />
-          <el-input-number v-else-if="current.valueType === 'NUMBER'" v-model="numberValue" :min="0" style="width: 100%" />
+          <el-input-number
+            v-else-if="current.valueType === 'NUMBER'"
+            v-model="numberValue"
+            :min="0"
+            :step="ruleMeta(current.configKey).storedAsMinutes ? 0.5 : 1"
+            style="width: 100%"
+          />
           <el-input v-else v-model="editValue" />
         </el-form-item>
       </el-form>
@@ -89,14 +95,14 @@ const configMeta = {
   leave_max_minutes: { name: '暂离最长时间', description: '学生单次暂离座位允许的最长分钟数', unit: '分钟' },
   location_check_enabled: { name: '定位签到校验', description: '签到时是否校验学生当前位置在空间允许范围内' },
   online_max_duration_enabled: { name: '线上预约时长限制', description: '是否限制学生线上一次预约的最长时长' },
-  online_max_duration_minutes: { name: '线上一次预约最长时长', description: '学生线上一次预约最多可预约多少分钟', unit: '分钟', showHours: true },
+  online_max_duration_minutes: { name: '线上一次预约最长时长', description: '学生线上一次预约最多可预约多少小时；保存时系统会换算为分钟', unit: '小时', storedAsMinutes: true },
   repair_enabled: { name: '报修流程', description: '是否允许学生提交空间或座位/工位报修' },
   credit_initial_score: { name: '初始信用分', description: '新学生账号默认信用分', unit: '分' },
   credit_max_score: { name: '信用分上限', description: '申诉通过或人工调整时可恢复到的最高分', unit: '分' },
   credit_min_score: { name: '信用分下限', description: '系统自动扣分后的最低信用分', unit: '分' },
   credit_low_threshold: { name: '低信用预约阈值', description: '信用分低于该值时限制继续预约', unit: '分' },
-  credit_first_sign_timeout_deduct: { name: '未按时签到扣分', description: '首次签到超时生成违规时扣除的信用分', unit: '分' },
-  credit_leave_return_timeout_deduct: { name: '暂离未返扣分', description: '暂离超时未返座生成违规时扣除的信用分', unit: '分' },
+  credit_first_sign_timeout_deduct: { name: '未按时签到扣分', description: '首次签到超时生成违规时扣除的信用分；管理员可在这里修改后续扣分值', unit: '分' },
+  credit_leave_return_timeout_deduct: { name: '暂离未返扣分', description: '暂离超时未返座生成违规时扣除的信用分；管理员可在这里修改后续扣分值', unit: '分' },
   low_credit_reservation_block_enabled: { name: '低信用限制预约', description: '是否在学生信用分低于阈值时阻止创建新预约' },
   violation_appeal_enabled: { name: '违规申诉流程', description: '是否允许学生对违规记录提交申诉' }
 }
@@ -132,11 +138,11 @@ function formatValue(key, value) {
   if (value === 'true') return '启用'
   if (value === 'false') return '关闭'
   const meta = ruleMeta(key)
-  if (!meta.unit) return value
   const number = Number(value)
-  if (meta.showHours && Number.isFinite(number) && number % 60 === 0) {
-    return `${value} ${meta.unit}（${number / 60} 小时）`
+  if (meta.storedAsMinutes && Number.isFinite(number)) {
+    return `${trimNumber(number / 60)} 小时`
   }
+  if (!meta.unit) return value
   return `${value} ${meta.unit}`
 }
 
@@ -144,15 +150,18 @@ function openEdit(row) {
   current.value = row
   editValue.value = row.configValue
   boolValue.value = row.configValue === 'true'
-  numberValue.value = Number(row.configValue || 0)
+  const meta = ruleMeta(row.configKey)
+  const rawNumber = Number(row.configValue || 0)
+  numberValue.value = meta.storedAsMinutes ? rawNumber / 60 : rawNumber
   dialogVisible.value = true
 }
 
 async function save() {
+  const meta = ruleMeta(current.value.configKey)
   const value = current.value.valueType === 'BOOLEAN'
     ? String(boolValue.value)
     : current.value.valueType === 'NUMBER'
-      ? String(numberValue.value)
+      ? String(meta.storedAsMinutes ? Math.round(Number(numberValue.value || 0) * 60) : numberValue.value)
       : editValue.value
   saving.value = true
   try {
@@ -163,6 +172,10 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+function trimNumber(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '')
 }
 
 onMounted(load)

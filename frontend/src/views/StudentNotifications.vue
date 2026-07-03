@@ -28,6 +28,7 @@
             <el-button v-if="!item.readStatus" size="small" @click="readOne(item)">标记已读</el-button>
           </div>
         </div>
+        <el-empty v-if="rows.length === 0" description="暂无消息" />
       </div>
     </AppCard>
   </div>
@@ -42,7 +43,7 @@ import PageHeader from '../components/PageHeader.vue'
 import StatusTag from '../components/StatusTag.vue'
 import { notificationTypeMap } from '../config/statusMap'
 
-const notificationTypes = ['RESERVATION', 'APPROVAL', 'VIOLATION', 'BAN', 'AI_TASK', 'REPAIR', 'ANNOUNCEMENT', 'SYSTEM']
+const notificationTypes = ['RESERVATION', 'APPROVAL', 'VIOLATION', 'VIOLATION_APPEAL', 'BAN', 'AI_TASK', 'REPAIR', 'ANNOUNCEMENT', 'SYSTEM']
 const rows = ref([])
 const unreadCount = ref(0)
 const filters = reactive({ type: '' })

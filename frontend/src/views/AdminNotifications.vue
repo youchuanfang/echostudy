@@ -22,13 +22,19 @@
     </AppCard>
 
     <AppCard title="全站消息">
-      <el-table :data="rows">
+      <el-table :data="rows" empty-text="暂无消息">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="用户" min-width="130"><template #default="{ row }">{{ row.realName || row.username || row.userId }}</template></el-table-column>
+        <el-table-column label="用户" min-width="130">
+          <template #default="{ row }">{{ row.realName || row.username || row.userId }}</template>
+        </el-table-column>
         <el-table-column prop="title" label="标题" min-width="180" />
         <el-table-column prop="content" label="内容" min-width="220" show-overflow-tooltip />
-        <el-table-column label="类型" width="120"><template #default="{ row }">{{ notificationTypeMap[row.type] || row.type }}</template></el-table-column>
-        <el-table-column label="状态" width="90"><template #default="{ row }">{{ row.readStatus ? '已读' : '未读' }}</template></el-table-column>
+        <el-table-column label="类型" width="120">
+          <template #default="{ row }">{{ notificationTypeMap[row.type] || row.type }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">{{ row.readStatus ? '已读' : '未读' }}</template>
+        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" min-width="160" />
       </el-table>
     </AppCard>
@@ -42,7 +48,7 @@ import AppCard from '../components/AppCard.vue'
 import PageHeader from '../components/PageHeader.vue'
 import { notificationTypeMap } from '../config/statusMap'
 
-const notificationTypes = ['RESERVATION', 'APPROVAL', 'VIOLATION', 'BAN', 'AI_TASK', 'REPAIR', 'ANNOUNCEMENT', 'SYSTEM']
+const notificationTypes = ['RESERVATION', 'APPROVAL', 'VIOLATION', 'VIOLATION_APPEAL', 'BAN', 'AI_TASK', 'REPAIR', 'ANNOUNCEMENT', 'SYSTEM']
 const rows = ref([])
 const filters = reactive({ userId: '', type: '', readStatus: '', keyword: '' })
 
